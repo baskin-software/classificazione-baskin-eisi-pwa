@@ -1,29 +1,20 @@
-/* app.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0 - 2026-11-15 19-59-18 */
+/* app.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.1 - 2026-11-14 13-47-15 */
 /* =====================================================================
    Classificazione Baskin EISI (PWA) - logica applicativa
    Autore: Daniele Lolli (UncleDan)
 
    Flusso:
-     Home → Nuova sessione: Griglia oppure Percorsi
-          → Identificazione del giocatore (squadra e n° obbligatori;
-            colore della maglia per la griglia, sesso per i percorsi)
-          → "Aggiungere un altro giocatore?" fino al No o al numero consigliato
-            (4 per la griglia, 20 per i percorsi; oltre si aggiunge dalla
-            pulsantiera, con richiesta di conferma)
-          → Pulsantiera giocatori (pulsanti nel colore della maglia)
-          → Griglia: menu abilità → abilità → Conferma → ... → Conferma finale
-            Percorsi: scelta percorso → menu prove → prova → Conferma → ...
-          → Stampa; all'uscita si chiede di stampare i giocatori rimanenti
+     Home → Sessione (pulsantiera fino a 4 giocatori)
+          → Identificazione giocatore (squadra e n° obbligatori)
+          → Menu abilità → Abilità (scelta livello, Conferma) → Menu abilità
+          → Conferma finale (richiesta di conferma) → stampa griglia attiva
    ===================================================================== */
 'use strict';
 
-const APP_VERSION = '26.0';
+const APP_VERSION = '26.1';
 const APP_NAME = 'Classificazione Baskin EISI (PWA)';
-/* numero di giocatori consigliato per sessione: oltre non si propone più
-   l'aggiunta automatica, ma si può aggiungere dalla pulsantiera confermando */
-const SOGLIA_GIOCATORI = { griglia: 4, percorsi: 20 };
-const soglia = () => SOGLIA_GIOCATORI[(S && S.tipo) || 'griglia'];
-const KEY_SESS = 'classificazione-baskin-eisi-sessione-v2';
+const MAX_GIOCATORI = 4;
+const KEY_SESS = 'classificazione-baskin-eisi-sessione-v1';
 const KEY_ARCH = 'classificazione-baskin-eisi-archivio-v1';
 
 const $  = (s, r=document) => r.querySelector(s);
@@ -39,27 +30,6 @@ const store = {
 };
 
 /* =====================================================================
-   COLORI DELLA MAGLIA (selettore ripreso dal Tabellone Baskin EISI)
-   bianco, nero, rosso, blu, giallo, viola, verde, azzurro + personalizzato
-   ===================================================================== */
-const TEAM_COLORS = ['#ffffff','#000000','#ff2b2b','#2962ff','#ffe000','#9b30ff','#1ee63a','#29b6f6'];
-function luminance(hex){
-  const c = String(hex||'#ffffff').replace('#','');
-  if(c.length < 6) return 1;
-  const r = parseInt(c.substr(0,2),16)/255, g = parseInt(c.substr(2,2),16)/255, b = parseInt(c.substr(4,2),16)/255;
-  const lin = x => (x <= 0.03928) ? x/12.92 : Math.pow((x+0.055)/1.055, 2.4);
-  return 0.2126*lin(r) + 0.7152*lin(g) + 0.0722*lin(b);
-}
-/* colori dei pulsanti nelle sessioni Percorsi, secondo il sesso */
-const COLORI_SESSO = { M: '#3f63e0', F: '#d6248f' };   // bluette, fucsia
-/* stile del "numero" del giocatore nel colore della maglia */
-function stileMaglia(col){
-  if(!col) return '';
-  const chiaro = luminance(col) > 0.45;
-  return `background:${col};color:${chiaro ? '#1f262d' : '#fff'};${chiaro ? 'box-shadow:inset 0 0 0 2px #b9c1ca;' : ''}`;
-}
-
-/* =====================================================================
    MODELLO DATI
    ===================================================================== */
 function oggiISO(){
@@ -68,18 +38,17 @@ function oggiISO(){
 }
 const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
 
-function nuovaSessione(tipo){
-  return { id: uid('s'), tipo, creata: new Date().toISOString(), data: oggiISO(), valutatore: '', gara: '', giocatori: [] };
+function nuovaSessione(){
+  return { id: uid('s'), creata: new Date().toISOString(), data: oggiISO(), valutatore: '', gara: '', giocatori: [] };
 }
 function nuovoGiocatore(){
   const livelli = {}; ABILITA.forEach(a => livelli[a.id] = null);
   const malusA = {}; MALUS_AAII.forEach(m => malusA[m.id] = false);
   return {
-    id: uid('g'), creata: new Date().toISOString(), stato: 'bozza', confermata: null, malusVisto: false, stampata: false,
-    dati: { squadra:'', numero:'', nome:'', nascita:'', ruolo:'', sezione:'', colore:'', sesso:'', note:'',
+    id: uid('g'), creata: new Date().toISOString(), stato: 'bozza', confermata: null, malusVisto: false,
+    dati: { squadra:'', numero:'', nome:'', nascita:'', ruolo:'', sezione:'', note:'',
             data:'', valutatore:'', gara:'' },
-    livelli, malusH: false, malusA,
-    percorsi: []     // usato solo nelle sessioni "percorsi"
+    livelli, malusH: false, malusA
   };
 }
 
@@ -88,11 +57,8 @@ let curIdx = -1;                             // giocatore aperto
 let curAb = null;                            // abilità aperta
 let pendingLv = null;                        // livello scelto non ancora confermato
 let editIdx = -1;                            // giocatore in modifica dati (-1 = nuovo)
-let colScelto = '';                          // colore maglia nel modulo
-let identOrigine = 'nuova';                  // da dove si è arrivati all'identificazione
 
 const cur = () => (S && S.giocatori[curIdx]) || null;
-const isGriglia = () => !!S && S.tipo === 'griglia';
 function salvaSess(){ if(S) store.set(KEY_SESS, S); else store.del(KEY_SESS); }
 
 function calcola(g){
@@ -113,50 +79,31 @@ function calcola(g){
 
 const etichetta = g => `${g.dati.squadra || '?'} · n° ${g.dati.numero || '?'}`;
 
-/* Elementi confermati e non ancora stampati della sessione:
-   griglie (giocatori confermati) o percorsi confermati dei giocatori */
-function daStampare(){
-  if(!S) return [];
-  if(S.tipo === 'griglia') return S.giocatori.filter(g => g.stato === 'confermata' && !g.stampata).map(g => ({ tipo:'griglia', g, item:g }));
-  const out = [];
-  S.giocatori.forEach(g => (g.percorsi || []).forEach(t => { if(t.stato === 'confermata' && !t.stampata) out.push({ tipo:'percorso', g, item:t }); }));
-  return out;
-}
-
 /* =====================================================================
    NAVIGAZIONE
    ===================================================================== */
-const SCREENS = ['home','nuova','sessione','giocatore','abilita','livello','malus','archivio','percorsi','perc-menu','perc-prova','documento','info'];
-const NEED_SESS = ['sessione','giocatore','abilita','livello','malus','percorsi','perc-menu','perc-prova'];
+const SCREENS = ['home','sessione','giocatore','abilita','livello','malus','archivio','percorsi','documento','info'];
+const NEED_SESS = ['sessione','giocatore','abilita','livello','malus'];
 
 function show(name){
-  if(name === 'esci') return;                 // gestito dalla guardia di uscita
   if(!SCREENS.includes(name)) name = 'home';
   if(NEED_SESS.includes(name) && !S) name = 'home';
-  if(['abilita','livello','malus'].includes(name) && (!cur() || !isGriglia())) name = 'sessione';
+  if(['abilita','livello','malus'].includes(name) && !cur()) name = 'sessione';
   if(name === 'livello' && !curAb) name = 'abilita';
-  if(name.startsWith('perc') && typeof percGuard === 'function') name = percGuard(name);
   document.body.dataset.screen = name;
-  document.body.dataset.tipo = S ? S.tipo : '';
   $$('.screen').forEach(s => s.classList.toggle('active', s.id === 'scr-' + name));
   const scr = $('#scr-' + name);
   $('#appbarTitle').textContent = scr ? scr.dataset.title : '';
   ({ home: renderHome, sessione: renderSessione, giocatore: renderIdent, abilita: renderMenuAbilita,
-     livello: renderLivello, malus: renderMalus, archivio: renderArchivio,
-     percorsi: () => renderSelettorePercorsi(), 'perc-menu': () => renderPercMenu(), 'perc-prova': () => renderPercProva() })[name]?.();
+     livello: renderLivello, malus: renderMalus, archivio: renderArchivio })[name]?.();
 }
 function go(name){
   if(location.hash !== '#' + name) location.hash = name; else show(name);
 }
 /* "replace": sostituisce la voce di cronologia (es. dopo una conferma) */
 function goReplace(name){ history.replaceState(null, '', '#' + name); show(name); window.scrollTo(0,0); }
+window.addEventListener('hashchange', () => { show(location.hash.slice(1)); window.scrollTo(0,0); });
 
-function uscitaDallaHome(){
-  show('home');
-  const msg = () => toast('Premi ancora Indietro per uscire dall’app');
-  if(daStampare().length) conStampaRimanenti(msg, 'Esci senza stampare');
-  else msg();
-}
 
 function apriDoc(id){
   go('documento');
@@ -171,166 +118,80 @@ function apriDoc(id){
    ===================================================================== */
 function renderHome(){
   const attiva = !!S;
-  $('#tileSessT').textContent = attiva ? `Riprendi sessione ${S.tipo === 'griglia' ? 'Griglia' : 'Percorsi'}` : 'Nuova sessione';
-  $('#tileSessIco').innerHTML = attiva && S.tipo === 'percorsi' ? '&#9201;' : '&#9998;';
+  $('#tileSessT').textContent = attiva ? 'Riprendi sessione' : 'Nuova sessione';
   if(attiva){
-    const n = S.giocatori.length;
-    const c = S.tipo === 'griglia' ? S.giocatori.filter(g => g.stato === 'confermata').length
-                                   : S.giocatori.reduce((s,g) => s + (g.percorsi||[]).filter(t => t.stato === 'confermata').length, 0);
-    $('#tileSessS').textContent = `${n} giocator${n===1?'e':'i'} · ${c} ${S.tipo === 'griglia' ? 'confermat' + (c===1?'o':'i') : 'percors' + (c===1?'o':'i') + ' confermat' + (c===1?'o':'i')}${S.gara ? ' · ' + S.gara : ''}`;
-  } else $('#tileSessS').textContent = `Griglia in partita (fino a ${SOGLIA_GIOCATORI.griglia} giocatori) o percorsi (fino a ${SOGLIA_GIOCATORI.percorsi})`;
+    const n = S.giocatori.length, c = S.giocatori.filter(g => g.stato === 'confermata').length;
+    $('#tileSessS').textContent = `${n} giocator${n===1?'e':'i'} · ${c} confermat${c===1?'o':'i'}${S.gara ? ' · ' + S.gara : ''}`;
+  } else $('#tileSessS').textContent = `Valuta fino a ${MAX_GIOCATORI} giocatori durante una partita`;
   $('#tileNuovaSess').hidden = !attiva;
-  const ds = daStampare();
-  $('#homeDaStampare').hidden = !ds.length;
-  $('#homeDaStampareN').textContent = ds.length === 1 ? 'C’è 1 valutazione confermata non ancora stampata.' : `Ci sono ${ds.length} valutazioni confermate non ancora stampate.`;
 }
 
-function iniziaSessione(tipo){
-  S = nuovaSessione(tipo); salvaSess();
-  editIdx = -1; identOrigine = 'nuova';
-  goReplace('giocatore');   // all'inizio della sessione: identificazione del giocatore
-}
-
-/* Uscita dalla sessione (chiusura o nuova sessione): chiede di stampare i rimanenti */
-function conStampaRimanenti(azione, testoEsci){
-  const ds = daStampare();
-  if(!ds.length) return azione();
-  const elenco = ds.map(x => `<li>${esc(etichetta(x.g))}${x.g.dati.nome ? ' — ' + esc(x.g.dati.nome) : ''}${x.tipo === 'percorso' ? ' · ' + esc(PERCORSI[x.item.tipo].nome) : ''}</li>`).join('');
-  apriSheet('Giocatori non stampati', [{ nome:'Stampa', html: `
-    <p>${ds.length === 1 ? 'Questa valutazione confermata non è ancora stata stampata' : 'Queste valutazioni confermate non sono ancora state stampate'}:</p>
-    <ul class="ds-list">${elenco}</ul>
-    <p>Vuoi stamparle ora (un’unica stampa, una scheda per pagina)?</p>
-    <div class="sheet-links col">
-      <button class="btn btn-pri" type="button" id="btnDsStampa">&#128424; Stampa i rimanenti</button>
-      <button class="btn" type="button" id="btnDsEsci">${esc(testoEsci)}</button>
-      <button class="btn btn-ghost" type="button" data-close="1">Annulla</button>
-    </div>` }]);
-  $('#btnDsStampa').onclick = () => { chiudiSheet(); stampaMultipla(ds); };
-  $('#btnDsEsci').onclick = () => { chiudiSheet(); azione(); };
+function iniziaSessione(){
+  S = nuovaSessione(); salvaSess();
+  editIdx = -1;
+  go('giocatore');   // all'inizio della sessione: identificazione del giocatore
 }
 
 function chiudiSessione(){
   if(!S) return;
-  conStampaRimanenti(() => {
-    const aperte = isGriglia() ? S.giocatori.filter(g => g.stato !== 'confermata').length
-                               : S.giocatori.filter(g => !(g.percorsi||[]).length || g.percorsi.some(t => t.stato !== 'confermata')).length;
-    const msg = aperte
-      ? `${aperte} giocator${aperte===1?'e ha':'i hanno'} valutazioni non confermate, che verranno scartate. Chiudere la sessione?`
-      : 'Chiudere la sessione? Le valutazioni confermate restano nell’archivio.';
-    if(!confirm(msg)) return;
-    S = null; salvaSess(); history.back();   // la pulsantiera si apre sempre dalla home
-  }, 'Chiudi senza stampare');
+  const aperte = S.giocatori.filter(g => g.stato !== 'confermata');
+  const msg = aperte.length
+    ? `${aperte.length} giocator${aperte.length===1?'e non è confermato':'i non sono confermati'} e verr${aperte.length===1?'à':'anno'} scartat${aperte.length===1?'o':'i'}. Chiudere la sessione?`
+    : 'Chiudere la sessione? Le valutazioni confermate restano nell’archivio.';
+  if(!confirm(msg)) return;
+  S = null; salvaSess(); history.back();
 }
 
 /* =====================================================================
    SESSIONE: PULSANTIERA GIOCATORI
    ===================================================================== */
 function renderSessione(){
-  $('#appbarTitle').textContent = isGriglia() ? 'Giocatori · Griglia' : 'Giocatori · Percorsi';
-  $('#sessTipo').textContent = isGriglia() ? 'Sessione Griglia' : 'Sessione Percorsi';
   $('#s_data').value = S.data || '';
   $('#s_valutatore').value = S.valutatore || '';
   $('#s_gara').value = S.gara || '';
-  $('#sGaraFld').hidden = !isGriglia();
-  $('#sHelpGriglia').hidden = !isGriglia();
-  $('#sessSummary').textContent = [fmtData(S.data), S.gara, S.valutatore].filter(Boolean).join(' · ') || 'tocca per data e valutatore';
+  $('#sessSummary').textContent = [fmtData(S.data), S.gara, S.valutatore].filter(Boolean).join(' · ') || 'tocca per data, gara e valutatore';
 
+  const box = $('#players');
   const card = (g, i) => {
-    let stato, score, conf, printBtn = '', stampata = false;
-    if(isGriglia()){
-      const r = calcola(g);
-      conf = g.stato === 'confermata'; stampata = g.stampata;
-      stato = conf ? `Confermato · ruolo ${r.ruolo}` : (r.fatti ? `In corso · ${r.fatti}/5 abilità` : 'Da valutare');
-      score = r.completa ? `<b>${r.finale}</b><small>punti</small>` : `<small>${r.fatti}/5</small>`;
-      if(conf) printBtn = `<button class="btn sm ${stampata ? '' : 'btn-pri'}" type="button" data-print="${i}">&#128424; ${stampata ? 'Ristampa' : 'Stampa griglia'}</button>`;
-    } else {
-      const t = (g.percorsi || []).slice(-1)[0];
-      const confermati = (g.percorsi || []).filter(x => x.stato === 'confermata');
-      const nonStampati = confermati.filter(x => !x.stampata);
-      conf = !!t && t.stato === 'confermata'; stampata = confermati.length > 0 && !nonStampati.length;
-      if(!t){ stato = 'Percorso da scegliere'; score = '<small>–</small>'; }
-      else {
-        const e = esito(t), n = t.prove.filter(p => p.confermata).length;
-        stato = `${PERCORSI[t.tipo].nome} · ${conf ? 'confermato' + (e.titolo ? ' · ' + e.titolo : '') : n + '/3 prove'}`;
-        score = `<b>${t.tipo}</b><small>${conf ? 'conf.' : n + '/3'}</small>`;
-      }
-      if(confermati.length) printBtn = `<button class="btn sm ${stampata ? '' : 'btn-pri'}" type="button" data-print="${i}">&#128424; ${stampata ? 'Ristampa' : (nonStampati.length > 1 ? `Stampa ${nonStampati.length} schede` : 'Stampa scheda')}</button>`;
-    }
-    const colPl = isGriglia() ? g.dati.colore : COLORI_SESSO[g.dati.sesso];
-    const stile = stileMaglia(colPl);
+    const r = calcola(g);
+    const conf = g.stato === 'confermata';
+    const stato = conf ? `Confermato · ruolo ${r.ruolo}` : (r.fatti ? `In corso · ${r.fatti}/5 abilità` : 'Da valutare');
     return `
-      <div class="pl ${conf ? 'conf' : ''}" data-idx="${i}" ${colPl ? `style="border-color:${colPl}"` : ''}>
+      <div class="pl ${conf ? 'conf r' + r.ruolo : ''}" data-idx="${i}">
         <button class="pl-btn" type="button" data-open="${i}">
-          <span class="pl-num" style="${stile}">${esc(g.dati.numero)}</span>
-          <span class="pl-txt"><b>${esc(g.dati.nome || g.dati.squadra)}</b><small>${esc(g.dati.nome ? g.dati.squadra : '')}</small><small class="pl-st">${esc(stato)}</small></span>
-          <span class="pl-score">${score}</span>
+          <span class="pl-num">${esc(g.dati.numero)}</span>
+          <span class="pl-txt"><b>${esc(g.dati.squadra)}</b><small>${esc(g.dati.nome || '')}</small><small class="pl-st">${stato}</small></span>
+          <span class="pl-score">${r.completa ? `<b>${r.finale}</b><small>punti</small>` : `<small>${r.fatti}/5</small>`}</span>
         </button>
         <div class="pl-act">
-          ${(conf || printBtn) && stampata ? '<span class="pl-printed">&#10004; stampato</span>' : ''}
-          ${printBtn || `<button class="btn sm danger" type="button" data-remove="${i}">Rimuovi</button>`}
+          ${conf ? `<button class="btn sm btn-pri" type="button" data-print="${i}">&#128424; Stampa griglia</button>`
+                 : `<button class="btn sm danger" type="button" data-remove="${i}">Rimuovi</button>`}
         </div>
       </div>`;
   };
   let html = S.giocatori.map(card).join('');
-  const n = S.giocatori.length, sg = soglia();
-  html += `<button class="pl-add ${n >= sg ? 'oltre' : ''}" type="button" id="btnAddGioc"><span>&#10010;</span> Aggiungi giocatore <small>(${n} ${n === 1 ? 'inserito' : 'inseriti'} · consigliati fino a ${sg})</small></button>`;
-  $('#players').innerHTML = html;
-  $('#players').classList.toggle('compact', S.giocatori.length > 6);
-  const ds = daStampare();
-  $('#btnStampaTutti').hidden = ds.length < 2;
-}
-
-/* oltre il numero consigliato l'aggiunta resta possibile, previa conferma */
-function confermaOltreSoglia(){
-  return confirm(`La sessione ha già ${S.giocatori.length} giocatori: il numero consigliato per una sessione ${isGriglia() ? 'Griglia' : 'Percorsi'} è ${soglia()}. Sei sicuro di voler aggiungere un altro giocatore?`);
-}
-
-function apriGiocatore(i){
-  curIdx = i;
-  if(isGriglia()) go('abilita');
-  else apriGiocatorePercorsi(i);
+  if(S.giocatori.length < MAX_GIOCATORI){
+    html += `<button class="pl-add" type="button" id="btnAddGioc"><span>&#10010;</span> Aggiungi giocatore <small>(${S.giocatori.length}/${MAX_GIOCATORI})</small></button>`;
+  }
+  box.innerHTML = html;
 }
 
 /* =====================================================================
    IDENTIFICAZIONE GIOCATORE
    ===================================================================== */
-const P_CAMPI = ['squadra','numero','nome','nascita','ruolo','sesso','sezione'];
-
-function costruisciColori(){
-  $('#colorRow').innerHTML = TEAM_COLORS.map(c =>
-    `<button class="swatch" type="button" data-color="${c}" style="background:${c}" aria-label="Colore ${c}"></button>`).join('') +
-    `<input class="swatch custom" type="color" id="colCustom" aria-label="Colore personalizzato" />`;
-}
-function setColore(c){
-  colScelto = c || '';
-  $$('#colorRow .swatch[data-color]').forEach(sw => sw.classList.toggle('sel', sw.dataset.color === colScelto.toLowerCase()));
-  const cu = $('#colCustom');
-  const personal = colScelto && !TEAM_COLORS.includes(colScelto.toLowerCase());
-  cu.classList.toggle('sel', !!personal);
-  try{ cu.value = /^#[0-9a-f]{6}$/i.test(colScelto) ? colScelto : '#ffffff'; }catch(_){}
-  if(personal) cu.style.background = colScelto; else cu.style.background = '';
-}
-
+const P_CAMPI = ['squadra','numero','nome','nascita','ruolo','sezione'];
 function renderIdent(){
   const g = editIdx >= 0 ? S.giocatori[editIdx] : null;
-  $('#appbarTitle').textContent = isGriglia() ? 'Giocatore · Griglia' : 'Giocatore · Percorsi';
-  $('#idTitle').textContent = g ? 'Dati del giocatore' : `Nuovo giocatore n. ${S.giocatori.length + 1}`;
+  $('#idTitle').textContent = g ? 'Dati del giocatore' : `Nuovo giocatore (${S.giocatori.length + 1}/${MAX_GIOCATORI})`;
   P_CAMPI.forEach(c => $('#p_' + c).value = g ? (g.dati[c] || '') : '');
-  let col = g ? g.dati.colore : '';
-  if(!g && S.giocatori.length){  // propone squadra e colore dell'ultimo giocatore
-    const u = S.giocatori[S.giocatori.length - 1];
-    $('#p_squadra').value = u.dati.squadra || '';
-    col = u.dati.colore || '';
+  if(!g && S.giocatori.length){  // propone la squadra dell'ultimo giocatore
+    $('#p_squadra').value = S.giocatori[S.giocatori.length - 1].dati.squadra || '';
   }
-  setColore(col);
   $('#idErr').hidden = true;
-  window.scrollTo(0,0);
   setTimeout(() => (g || !$('#p_squadra').value ? $('#p_squadra') : $('#p_numero')).focus(), 80);
 }
-
 function confermaIdent(){
   const v = {}; P_CAMPI.forEach(c => v[c] = $('#p_' + c).value.trim());
-  if(isGriglia()) v.colore = colScelto; else delete v.ruolo;
   const err = [];
   if(!v.squadra) err.push('la squadra');
   if(!v.numero) err.push('il numero');
@@ -340,42 +201,12 @@ function confermaIdent(){
   if(err.length){ e.textContent = 'Inserisci ' + err.join(' e ') + '.'; e.hidden = false; return; }
   if(dup >= 0){ e.textContent = 'Questo giocatore (squadra e numero) è già nella sessione.'; e.hidden = false; return; }
   if(editIdx >= 0){
-    const g = S.giocatori[editIdx];
-    Object.assign(g.dati, v);
-    (g.percorsi || []).forEach(t => { if(t.stato !== 'confermata') Object.assign(t.dati, v); });
-    salvaSess(); history.back(); return;
+    Object.assign(S.giocatori[editIdx].dati, v); salvaSess(); history.back(); return;
   }
   const g = nuovoGiocatore(); Object.assign(g.dati, v);
   S.giocatori.push(g); salvaSess(); popolaSuggerimenti();
-  if(S.giocatori.length >= soglia()){
-    toast(`Inseriti ${S.giocatori.length} giocatori: raggiunto il numero consigliato per la sessione`);
-    vaiAiGiocatori();
-    return;
-  }
-  chiediAltroGiocatore(g);
-}
-
-/* dopo ogni inserimento: aggiungere un altro giocatore? (fino al No o a 4) */
-function chiediAltroGiocatore(g){
-  const n = S.giocatori.length;
-  apriSheet('Giocatore inserito', [{ nome:'Altro', html: `
-    <p><span class="pl-num inline" style="${stileMaglia(isGriglia() ? g.dati.colore : COLORI_SESSO[g.dati.sesso])}">${esc(g.dati.numero)}</span>
-       <b>${esc(etichetta(g))}</b>${g.dati.nome ? ' — ' + esc(g.dati.nome) : ''}</p>
-    <p>Giocatori nella sessione: <b>${n}</b> (consigliati fino a ${soglia()}). Vuoi aggiungere un altro giocatore?</p>
-    <div class="sheet-links two">
-      <button class="btn" type="button" id="btnAltroNo">No, vai ai giocatori</button>
-      <button class="btn btn-pri" type="button" id="btnAltroSi">&#10010; Sì, aggiungi</button>
-    </div>` }]);
-  $('#btnAltroSi').onclick = () => { chiudiSheet(); editIdx = -1; renderIdent(); };
-  $('#btnAltroNo').onclick = () => { chiudiSheet(); vaiAiGiocatori(); };
-}
-function vaiAiGiocatori(){
-  if(identOrigine === 'sessione') history.back(); else goReplace('sessione');
-}
-function annullaIdent(){
-  if(editIdx >= 0) return history.back();
-  if(S && !S.giocatori.length){ S = null; salvaSess(); return history.back(); }   // sessione vuota: si torna alla home
-  vaiAiGiocatori();
+  if(S.giocatori.length === 1) goReplace('sessione');   // primo giocatore: arrivati dalla home
+  else history.back();                                    // torna alla pulsantiera
 }
 
 /* =====================================================================
@@ -384,7 +215,6 @@ function annullaIdent(){
 function renderMenuAbilita(){
   const g = cur(), r = calcola(g), conf = g.stato === 'confermata';
   $('#plNum').textContent = g.dati.numero;
-  $('#plNum').style.cssText = stileMaglia(g.dati.colore);
   $('#plSquadra').textContent = g.dati.squadra;
   $('#plNome').textContent = [g.dati.nome, g.dati.ruolo ? 'ruolo attuale ' + g.dati.ruolo : ''].filter(Boolean).join(' · ');
   $('#lockedMsg').hidden = !conf;
@@ -530,7 +360,7 @@ function chiediConfermaFinale(){
 
 function eseguiConfermaFinale(){
   const g = cur();
-  g.stato = 'confermata'; g.confermata = new Date().toISOString(); g.stampata = false;
+  g.stato = 'confermata'; g.confermata = new Date().toISOString();
   // i dati della sessione vengono copiati nella griglia del giocatore
   g.dati.data = S.data; g.dati.valutatore = S.valutatore; g.dati.gara = S.gara;
   salvaSess(); archiviaGiocatore(g);
@@ -542,7 +372,7 @@ function eseguiConfermaFinale(){
 function riapri(){
   const g = cur();
   if(!confirm('Riaprire la valutazione? La stampa resterà disattivata fino a una nuova conferma finale.')) return;
-  g.stato = 'bozza'; g.confermata = null; g.stampata = false; salvaSess(); renderMenuAbilita();
+  g.stato = 'bozza'; g.confermata = null; salvaSess(); renderMenuAbilita();
 }
 
 /* =====================================================================
@@ -668,8 +498,7 @@ const chiaveGiocatore = g => `${(g.dati.squadra||'').trim().toLowerCase()}#${Str
 function renderArchivio(){
   const a = archivio();
   const box = $('#archList');
-  if(typeof renderArchivioPercorsi === 'function') renderArchivioPercorsi();
-  if(!a.length){ box.innerHTML = '<div class="card"><p class="muted">Nessuna griglia confermata.</p></div>'; return; }
+  if(!a.length){ box.innerHTML = '<div class="card"><p class="muted">Nessuna valutazione confermata.</p></div>'; return; }
 
   const gruppi = {};
   a.forEach(g => { const r = calcola(g); if(r.completa) (gruppi[chiaveGiocatore(g)] = gruppi[chiaveGiocatore(g)] || []).push(r.finale); });
@@ -703,12 +532,11 @@ function onArchivio(azione, id){
   if(azione === 'stampa') stampa(g);
   if(azione === 'html') esportaHtml(g);
   if(azione === 'rivaluta'){
-    if(S && S.tipo !== 'griglia'){ toast('C’è una sessione Percorsi in corso: chiudila per rivalutare con la griglia'); return; }
-    if(!S){ S = nuovaSessione('griglia'); }
-    if(S.giocatori.length >= soglia() && !confermaOltreSoglia()) return;
+    if(!S){ S = nuovaSessione(); }
+    if(S.giocatori.length >= MAX_GIOCATORI){ toast(`La sessione ha già ${MAX_GIOCATORI} giocatori`); return; }
     if(S.giocatori.some(x => chiaveGiocatore(x) === chiaveGiocatore(g))){ toast('Giocatore già presente nella sessione'); return; }
     const n = nuovoGiocatore();
-    P_CAMPI.concat(['colore']).forEach(k => n.dati[k] = g.dati[k] || '');
+    P_CAMPI.forEach(k => n.dati[k] = g.dati[k] || '');
     S.giocatori.push(n); salvaSess(); go('sessione'); toast('Giocatore aggiunto alla sessione');
   }
   if(azione === 'elimina'){
@@ -718,7 +546,7 @@ function onArchivio(azione, id){
 }
 
 function esportaArchivio(){
-  const blob = new Blob([JSON.stringify({app: APP_NAME, versione: APP_VERSION, esportato: new Date().toISOString(), valutazioni: archivio(), percorsi: (typeof percArchivio === 'function' ? percArchivio() : [])}, null, 2)], {type:'application/json'});
+  const blob = new Blob([JSON.stringify({app: APP_NAME, versione: APP_VERSION, esportato: new Date().toISOString(), valutazioni: archivio()}, null, 2)], {type:'application/json'});
   scarica(blob, `Archivio_Classificazione_Baskin_${stamp()}.json`);
 }
 function importaArchivio(file){
@@ -730,15 +558,14 @@ function importaArchivio(file){
       if(!Array.isArray(nuove)) throw new Error('formato');
       const a = archivio(); let n = 0;
       nuove.forEach(g => { if(g && g.id && g.livelli && g.dati && !a.some(x => x.id === g.id)){ a.push(g); n++; } });
-      const np = (Array.isArray(j.percorsi) && typeof percImporta === 'function') ? percImporta(j.percorsi) : 0;
-      salvaArchivio(a); renderArchivio(); popolaSuggerimenti(); toast(`Importate ${n} griglie e ${np} percorsi`);
+      salvaArchivio(a); renderArchivio(); popolaSuggerimenti(); toast(`Importate ${n} valutazioni`);
     }catch(_){ toast('File non valido'); }
   };
   fr.readAsText(file);
 }
 
 function popolaSuggerimenti(){
-  const tutti = archivio().concat(S ? S.giocatori : []).concat(typeof percTutti === 'function' ? percTutti() : []);
+  const tutti = archivio().concat(S ? S.giocatori : []);
   const uniq = k => [...new Set(tutti.map(g => g.dati[k]).filter(Boolean))];
   $('#dlSezioni').innerHTML = uniq('sezione').map(s => `<option value="${esc(s)}">`).join('');
   $('#dlSquadre').innerHTML = uniq('squadra').map(s => `<option value="${esc(s)}">`).join('');
@@ -777,10 +604,10 @@ function htmlScheda(g, logoB, logoE){
     </header>
     <h1>RISULTATI GRIGLIA DI VALUTAZIONE DELLE ABILITÀ IN PARTITA</h1>
     <table class="ps-dati">
-      <tr><th>Squadra di appartenenza</th><td>${esc(d.squadra)}</td><th>N° maglia</th><td class="c b">${esc(d.numero)}${d.colore ? ` <span class="ps-col" style="background:${esc(d.colore)}"></span>` : ''}</td></tr>
+      <tr><th>Squadra di appartenenza</th><td>${esc(d.squadra)}</td><th>N° maglia</th><td class="c b">${esc(d.numero)}</td></tr>
       <tr><th>Cognome e nome</th><td colspan="3">${esc(d.nome)}</td></tr>
       <tr><th>Data di nascita</th><td>${esc(fmtData(d.nascita))}</td><th>Ruolo attuale</th><td class="c b">${esc(d.ruolo)}</td></tr>
-      <tr><th>Sezione Territoriale</th><td>${esc(d.sezione)}</td><th>Sesso</th><td class="c">${esc(d.sesso || '')}</td></tr>
+      <tr><th>Sezione Territoriale</th><td colspan="3">${esc(d.sezione)}</td></tr>
       <tr><th>Data osservazione</th><td>${esc(fmtData(d.data))}</td><th>Valutatore</th><td>${esc(d.valutatore)}</td></tr>
       <tr><th>Gara/e osservata/e</th><td colspan="3">${esc(d.gara)}</td></tr>
     </table>
@@ -844,47 +671,21 @@ const CSS_SCHEDA = `
 .ps-det td{font-size:9.5pt}
 .ps-foot{margin-top:5mm;font-size:8pt;color:#555;text-align:center;border-top:0.3mm solid #ccc;padding-top:2mm}
 .ps-foot a{color:#f4991b}
-.ps-col{display:inline-block;width:4mm;height:4mm;border-radius:50%;border:0.3mm solid #666;vertical-align:-0.6mm;margin-left:1.5mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 @page{size:A4;margin:12mm}
 `;
 
-/* Stampa di una o più schede (griglie e/o percorsi) in un'unica stampa,
-   una scheda per pagina. Alla chiusura della finestra di stampa le schede
-   vengono segnate come stampate. */
-function htmlElemento(x, logoB, logoE){
-  return x.tipo === 'griglia' ? htmlScheda(x.item, logoB, logoE) : htmlSchedaPercorso(x.item, logoB, logoE);
-}
-const CSS_MULTI = `.ps + .ps{break-before:page;page-break-before:always}`;
-function stampaSchede(lista, titoloFile){
-  if(!lista.length) return;
+function stampa(g){
+  if(g.stato !== 'confermata'){ toast('La stampa è attiva solo dopo la conferma finale'); return; }
   const area = $('#printArea');
-  area.innerHTML = `<style>${CSS_SCHEDA}${typeof CSS_PERC_EXTRA !== 'undefined' ? CSS_PERC_EXTRA : ''}${CSS_MULTI}</style>` +
-    lista.map(x => htmlElemento(x, 'icons/logos/logo-baskin.svg', 'icons/logos/logo-eisi.svg')).join('');
+  area.innerHTML = `<style>${CSS_SCHEDA}</style>` + htmlScheda(g, 'icons/logos/logo-baskin.svg', 'icons/logos/logo-eisi.svg');
   const titolo = document.title;
-  document.title = titoloFile;
+  document.title = nomeFile(g);
   document.body.classList.add('printing');
-  let fatto = false;
-  const fine = () => {
-    if(fatto) return; fatto = true;
-    document.body.classList.remove('printing'); document.title = titolo;
-    window.removeEventListener('afterprint', fine);
-    lista.forEach(x => x.item.stampata = true);
-    salvaSess();
-    const scr = document.body.dataset.screen;
-    if(scr === 'sessione') renderSessione(); else if(scr === 'home') renderHome();
-    else if(scr === 'perc-menu') renderPercMenu();
-  };
+  const fine = () => { document.body.classList.remove('printing'); document.title = titolo; window.removeEventListener('afterprint', fine); };
   window.addEventListener('afterprint', fine);
   const imgs = $$('img', area);
   Promise.all(imgs.map(i => i.complete ? 1 : new Promise(res => { i.onload = i.onerror = res; })))
     .then(() => setTimeout(() => { window.print(); setTimeout(fine, 1500); }, 50));
-}
-function stampa(g){
-  if(g.stato !== 'confermata'){ toast('La stampa è attiva solo dopo la conferma finale'); return; }
-  stampaSchede([{ tipo:'griglia', item:g }], nomeFile(g));
-}
-function stampaMultipla(ds){
-  stampaSchede(ds.map(x => ({ tipo:x.tipo, item:x.item })), `Classificazione_Baskin_${ds.length}_schede_${stamp()}`);
 }
 
 function esportaHtml(g){
@@ -900,7 +701,6 @@ function esportaHtml(g){
 ${htmlScheda(g, LOGO_BASKIN, LOGO_EISI)}
 </body></html>`;
   scarica(new Blob([doc], {type:'text/html'}), nome + '.html');
-  g.stampata = true; salvaSess();
 }
 
 function scarica(blob, nome){
@@ -969,37 +769,19 @@ function init(){
     if(helpB){ e.preventDefault(); onHelp(helpB.dataset.help); return; }
     if(t.closest('#btnSiConferma')){ eseguiConfermaFinale(); return; }
     if(t.closest('[data-close]')){ chiudiSheet(); return; }
-    if(typeof percClick === 'function' && percClick(t)) return;
 
     // pulsantiera giocatori
     const op = t.closest('[data-open]');
-    if(op){ apriGiocatore(Number(op.dataset.open)); return; }
+    if(op){ curIdx = Number(op.dataset.open); go('abilita'); return; }
     const pr = t.closest('[data-print]');
-    if(pr){
-      const g = S.giocatori[Number(pr.dataset.print)];
-      if(isGriglia()) stampa(g);
-      else {
-        const conf = g.percorsi.filter(x => x.stato === 'confermata');
-        const ns = conf.filter(x => !x.stampata);
-        if(ns.length) stampaSchede(ns.map(x => ({ tipo:'percorso', item:x })), ns.length === 1 ? nomeFilePercorso(ns[0]) : `Percorsi_Baskin_${etichetta(g).replace(/[^\p{L}\p{N}]+/gu,'_')}_${stamp()}`);
-        else stampaPercorso(conf[conf.length - 1]);
-      }
-      return;
-    }
-    const tp = t.closest('button[data-tipo]');
-    if(tp){ iniziaSessione(tp.dataset.tipo); return; }
-    const sw = t.closest('#colorRow .swatch[data-color]');
-    if(sw){ setColore(sw.dataset.color); return; }
+    if(pr){ stampa(S.giocatori[Number(pr.dataset.print)]); return; }
     const rm = t.closest('[data-remove]');
     if(rm){
       const i = Number(rm.dataset.remove), g = S.giocatori[i];
       if(confirm(`Rimuovere ${etichetta(g)} dalla sessione?`)){ S.giocatori.splice(i, 1); salvaSess(); renderSessione(); }
       return;
     }
-    if(t.closest('#btnAddGioc')){
-      if(S.giocatori.length >= soglia() && !confermaOltreSoglia()) return;
-      editIdx = -1; identOrigine = 'sessione'; go('giocatore'); return;
-    }
+    if(t.closest('#btnAddGioc')){ editIdx = -1; go('giocatore'); return; }
 
     // menu abilità
     const ab = t.closest('.ab-row[data-ab]');
@@ -1016,26 +798,26 @@ function init(){
     if(arch){ onArchivio(arch.dataset.arch, arch.closest('.arch').dataset.id); return; }
   });
 
-  costruisciColori();
-  $('#colCustom').addEventListener('input', e => setColore(e.target.value));
-  $('#tileSessione').onclick = () => { if(S) go('sessione'); else go('nuova'); };
-  $('#tileNuovaSess').onclick = () => conStampaRimanenti(() => {
-    if(!confirm('Chiudere la sessione in corso e iniziarne una nuova? Le valutazioni non confermate verranno scartate.')) return;
-    S = null; salvaSess(); go('nuova');
-  }, 'Continua senza stampare');
+  $('#tileSessione').onclick = () => { if(S) go('sessione'); else iniziaSessione(); };
+  $('#tileNuovaSess').onclick = () => {
+    const aperte = S ? S.giocatori.filter(g => g.stato !== 'confermata').length : 0;
+    if(aperte && !confirm(`La sessione in corso ha ${aperte} giocator${aperte===1?'e':'i'} non confermat${aperte===1?'o':'i'}, che verr${aperte===1?'à':'anno'} scartat${aperte===1?'o':'i'}. Iniziare una nuova sessione?`)) return;
+    iniziaSessione();
+  };
   $('#btnChiudiSess').onclick = chiudiSessione;
-  $('#btnStampaTutti').onclick = () => stampaMultipla(daStampare());
-  $('#btnHomeStampa').onclick = () => stampaMultipla(daStampare());
   ['data','valutatore','gara'].forEach(k => $('#s_' + k).addEventListener('input', e => {
     S[k] = e.target.value; salvaSess();
     $('#sessSummary').textContent = [fmtData(S.data), S.gara, S.valutatore].filter(Boolean).join(' · ');
   }));
 
   $('#btnIdConferma').onclick = confermaIdent;
-  $('#btnIdAnnulla').onclick = annullaIdent;
+  $('#btnIdAnnulla').onclick = () => {
+    if(S && !S.giocatori.length && editIdx < 0){ S = null; salvaSess(); }   // sessione appena iniziata e vuota
+    history.back();
+  };
   $('#frmGiocatore').addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); confermaIdent(); } });
 
-  $('#btnModDati').onclick = () => { editIdx = curIdx; identOrigine = 'menu'; go('giocatore'); };
+  $('#btnModDati').onclick = () => { editIdx = curIdx; go('giocatore'); };
   $('#btnConfermaFinale').onclick = chiediConfermaFinale;
   $('#btnStampa').onclick = () => stampa(cur());
   $('#btnHtml').onclick = () => esportaHtml(cur());
@@ -1052,7 +834,7 @@ function init(){
     const scr = document.body.dataset.screen;
     if(scr === 'livello'){ pendingLv = null; curAb = null; }
     if(scr === 'malus'){ pendingMalus = null; }
-    if(scr === 'giocatore') return annullaIdent();
+    if(scr === 'giocatore' && S && !S.giocatori.length && editIdx < 0){ S = null; salvaSess(); }
     history.back();
   };
   $('#btnTop').onclick = () => $('#scr-documento').scrollIntoView({behavior:'smooth'});
@@ -1061,20 +843,9 @@ function init(){
   $('#btnUpdate').onclick = verificaAggiornamenti;
   document.addEventListener('keydown', e => { if(e.key === 'Escape') chiudiSheet(); });
 
-  // all'avvio si parte sempre dalla home (lo stato di navigazione non è persistente).
-  // Sotto la home c'è la voce "#esci": premendo Indietro dalla home, se ci sono
-  // valutazioni confermate non stampate si chiede di stamparle prima di uscire.
-  history.replaceState(null, '', '#esci');
-  history.pushState(null, '', '#home');
+  // all'avvio si parte sempre dalla home (lo stato di navigazione non è persistente)
+  history.replaceState(null, '', '#home');
   show('home');
-  window.addEventListener('hashchange', () => {
-    const h = location.hash.slice(1);
-    if(h === 'esci'){ uscitaDallaHome(); return; }
-    show(h); window.scrollTo(0,0);
-  });
-  window.addEventListener('beforeunload', e => {
-    if(daStampare().length){ e.preventDefault(); e.returnValue = ''; }
-  });
 
   if('serviceWorker' in navigator && location.protocol.startsWith('http')){
     navigator.serviceWorker.register('service-worker.js').catch(()=>{});
