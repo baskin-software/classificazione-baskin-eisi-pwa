@@ -24,46 +24,44 @@ Baskin (rev. 1 settembre 2025)*. Pensata per essere ospitata su **GitHub Pages**
 
 ### Funzioni
 
-- **Sessione di valutazione** (es. una partita): all'inizio si identifica il
-  giocatore — **squadra e numero di maglia obbligatori**, cognome e nome, data
-  di nascita, ruolo attuale e Sezione Territoriale facoltativi. Si gestiscono
-  **fino a 4 giocatori** per sessione dalla **pulsantiera giocatori**.
-- **Menu abilità**: per ogni giocatore le cinque abilità (Difesa, Qualità di
-  scelta di tiro, Uso dei due canestri, Coinvolgimento compagni, Movimento
-  senza palla) più la voce **Malus**. Si apre un'abilità, si sceglie il livello
-  (testo completo dei cinque livelli), si **conferma** e si torna al menu.
-- **Calcolo automatico**: somma dei livelli, malus abilitati solo nella fascia
-  prevista (Malus H tra 5 e 20, Malus A.A.I.I. tra 21 e 25), punteggio finale,
-  ruolo risultante e confronto con il ruolo attuale.
-- **Conferma finale**: riepilogo e richiesta di conferma; solo il giocatore
-  confermato ha la **stampa della griglia** attiva (dal menu abilità e dalla
-  pulsantiera) e viene salvato nell'archivio. Una valutazione confermata si
-  può riaprire.
-- **Aiuti contestuali** (pulsante **?**): livelli con il profilo di ruolo
-  corrispondente, esempi per ruolo tratti dalla *Tabella delle casistiche in
-  forma estesa* (con evidenziata la colonna del livello scelto), note della
-  legenda pertinenti al testo del livello, soglie e rimandi al testo integrale.
-- **Testo integrale** dell'Allegato A, con indice, tabelle dei percorsi,
-  esempi di calcolo e schemi dei percorsi A, B e C.
-- **Output**: scheda *Risultati griglia di valutazione delle abilità in
-  partita* compilata, da **stampare / salvare come PDF** oppure da scaricare
-  come **file HTML autonomo** (loghi incorporati, stampabile a sua volta).
-- **Archivio** delle valutazioni confermate, con **media matematica** delle
-  valutazioni dello stesso giocatore (squadra + numero), nuova valutazione ed
+- **Sessione**: si sceglie se la sessione è di **Griglia** (valutazione delle
+  abilità in partita) o di **Percorsi** (A, B, C), con fino a **4 giocatori**.
+- **Inserimento dei giocatori**: squadra e numero di maglia obbligatori,
+  cognome e nome e data di nascita facoltativi; per la griglia anche il
+  **colore della maglia** (selettore del Tabellone Baskin EISI: otto colori
+  base più colore personalizzato) e il ruolo attuale, per i percorsi il sesso
+  (necessario per il Percorso B, chiesto comunque all'avvio del B se manca).
+  Dopo ogni inserimento l'app chiede se aggiungere un altro giocatore, fino
+  alla risposta "No" o al quarto giocatore.
+- **Pulsantiera giocatori**: un pulsante per giocatore, nel colore della maglia
+  (sessioni Griglia), con stato, punteggio/esito e pulsante di stampa.
+- **Griglia**: menu delle cinque abilità più la voce Malus; ogni abilità si
+  apre, si sceglie il livello, si **conferma** e si torna al menu; calcolo
+  automatico (malus solo nella fascia prevista), confronto con il ruolo
+  attuale, **conferma finale** con richiesta di conferma e poi stampa.
+- **Percorsi**: per ogni giocatore scelta del percorso, menu delle tre prove,
+  prova con **cronometro a 7 segmenti** (cifre del Tabellone; avvio/arresto
+  anche toccando il display, schermo sempre acceso durante la misura) o tempo
+  inserito a mano, criteri con punteggio automatico e **Conferma**. Esito
+  secondo le tabelle "In sintesi": A → Ruolo 3, Ruolo 4 o Percorso C;
+  B → Ruolo 4, Ruolo 4 da monitorare o Ruolo 5; C → verifica 3/4 (soglia 20")
+  o 2/2R (soglia 40") su due prove su tre. Dopo la conferma finale si attiva la
+  stampa e si può avviare il percorso successivo per lo stesso giocatore
+  (A → B oppure A → C).
+- **Stampa**: scheda risultati della griglia o scheda del percorso, da stampare
+  / salvare come PDF o da scaricare come **HTML autonomo**. L'app tiene conto
+  di cosa è già stato stampato: quando si chiude la sessione, se ne inizia
+  un'altra o si esce dall'app con il tasto Indietro dalla home, chiede se
+  stampare le valutazioni confermate rimanenti (un'unica stampa, una scheda per
+  pagina). Riaprendo l'app, la home segnala le valutazioni ancora da stampare.
+- **Aiuti contestuali** (pulsante **?**): livelli con il profilo di ruolo,
+  esempi per ruolo dalla *Tabella delle casistiche in forma estesa*, note della
+  legenda pertinenti, soglie, schemi e tabelle dei percorsi.
+- **Testo integrale** dell'Allegato A, con indice, tabelle, esempi di calcolo e
+  schemi dei percorsi A, B e C.
+- **Archivio** delle griglie e dei percorsi confermati, con **media matematica**
+  delle valutazioni dello stesso giocatore (squadra + numero), ristampa ed
   esportazione/importazione in JSON.
-- **Percorsi A, B e C** (sistema di classificazione, Sfera Motoria e
-  Tecnica): selettore del percorso con schema e tabella, identificazione
-  dell'atleta (squadra e numero obbligatori; sesso obbligatorio per il
-  Percorso B), menu delle tre prove, per ogni prova **cronometro a 7 segmenti**
-  (ripreso dal Tabellone Baskin EISI; avvio/arresto anche toccando il display,
-  schermo sempre acceso durante la misura) o tempo inserito a mano, criteri
-  delle tabelle di valutazione con punteggio automatico e **Conferma**.
-  L'esito segue le tabelle "In sintesi": Percorso A → Ruolo 3, Ruolo 4 o
-  Percorso C; Percorso B → Ruolo 4, Ruolo 4 da monitorare o Ruolo 5;
-  Percorso C → verifica 3/4 (soglia 20") o 2/2R (soglia 40") su due prove su
-  tre. Dopo la conferma finale si attivano stampa/PDF ed export HTML della
-  scheda e il pulsante per il percorso successivo (A → B oppure A → C) con
-  i dati dell'atleta già compilati.
 
 ### Privacy
 
@@ -90,8 +88,15 @@ pwa/
   img/doc/                figure del testo integrale
 ```
 
-Ad ogni rilascio aggiornare insieme `APP_VERSION` in `js/app.js` e
-`CACHE_NAME` in `service-worker.js`.
+## Versioni
+
+Versionamento allineato al Tabellone Baskin EISI (PWA) e all'app Cast:
+`versione.sottoversione[.patch]`, con la versione maggiore pari all'anno a due
+cifre. La patch si indica solo quando c'è: `26.3`, poi `26.3.1` per una
+correzione, `26.4` per nuove funzioni, `27.0` per il primo rilascio dell'anno
+successivo. A ogni rilascio aggiornare insieme `APP_VERSION` in
+`pwa/js/app.js` e `CACHE_NAME` in `pwa/service-worker.js`, con il tag git
+corrispondente (`v26.3`).
 
 ## Licenza
 

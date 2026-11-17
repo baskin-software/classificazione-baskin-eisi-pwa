@@ -1,36 +1,43 @@
-/* percorsi.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.2 - 2026-11-14 18-02-27 */
+/* percorsi.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.3 - 2026-11-14 19-13-26 */
 /* =====================================================================
    Classificazione Baskin EISI (PWA) - Percorsi A, B e C
-   Flusso: Selettore → Identificazione atleta → Menu prove
-           → Prova (cronometro + criteri, Conferma) → Menu prove
-           → Conferma finale (richiesta di conferma) → stampa scheda attiva
-   Usa le funzioni comuni definite in app.js ($, esc, store, toast, ...)
+   Nelle sessioni "Percorsi" ogni giocatore della pulsantiera ha i propri
+   percorsi (l'ultimo è quello corrente):
+     Pulsantiera → giocatore → Scelta del percorso → Menu prove
+       → Prova (cronometro + criteri, Conferma) → Menu prove
+       → Conferma finale (richiesta di conferma) → stampa scheda attiva
+       → eventuale percorso successivo per lo stesso giocatore (A→B, A→C)
+   Usa le funzioni comuni di app.js ($, esc, store, toast, S, salvaSess...)
    e il display a 7 segmenti di seg.js (dal Tabellone Baskin EISI).
    ===================================================================== */
 'use strict';
 
-const KEY_PERC_CUR  = 'classificazione-baskin-eisi-percorso-v1';
 const KEY_PERC_ARCH = 'classificazione-baskin-eisi-percorsi-archivio-v1';
 
-let T = store.get(KEY_PERC_CUR, null);   // percorso in corso
-let tipoScelto = null;                   // percorso scelto nel selettore (nuovo)
-let atletaPrefill = null;                // dati atleta proposti (da un altro percorso)
-let varPrefill = null;                   // variante C proposta
-let editAtleta = false;                  // modifica dati del percorso in corso
+let T = null;                            // percorso corrente del giocatore aperto
 let provaIdx = -1;                       // prova aperta
 let PP = null;                           // copia di lavoro della prova aperta
 
-const salvaT = () => { if(T) store.set(KEY_PERC_CUR, T); else store.del(KEY_PERC_CUR); };
+const salvaT = () => salvaSess();
 const percArchivio = () => store.get(KEY_PERC_ARCH, []);
 const salvaPercArchivio = a => store.set(KEY_PERC_ARCH, a);
-const percTutti = () => percArchivio().concat(T ? [T] : []);
+const percTutti = () => percArchivio().concat(S && S.tipo === 'percorsi' ? S.giocatori.flatMap(g => g.percorsi || []) : []);
 
-function nuovoPercorso(tipo){
+function nuovoPercorso(tipo, g, variante){
+  const dati = { squadra:'', numero:'', nome:'', nascita:'', sesso:'', sezione:'', data:'', valutatore:'', note:'' };
+  ['squadra','numero','nome','nascita','sesso','sezione'].forEach(k => dati[k] = g.dati[k] || '');
+  dati.data = S.data; dati.valutatore = S.valutatore;
   return {
-    id: uid('p'), tipo, variante: null, stato: 'bozza', creata: new Date().toISOString(), confermata: null,
-    dati: { squadra:'', numero:'', nome:'', nascita:'', sesso:'', sezione:'', data: oggiISO(), valutatore:'', note:'' },
+    id: uid('p'), tipo, variante: tipo === 'C' ? (variante || '34') : null, stato: 'bozza',
+    creata: new Date().toISOString(), confermata: null, stampata: false, dati,
     prove: Array.from({length: NUM_PROVE}, () => ({ tempo: null, crit: {}, confermata: false }))
   };
+}
+/* allinea i dati del percorso a quelli del giocatore e della sessione (finché non è confermato) */
+function sincronizzaT(){
+  const g = cur(); if(!T || !g || T.stato === 'confermata') return;
+  ['squadra','numero','nome','nascita','sesso','sezione'].forEach(k => T.dati[k] = g.dati[k] || '');
+  T.dati.data = S.data; T.dati.valutatore = S.valutatore;
 }
 
 const fmtSec = ms => ms == null ? '–' : (ms / 1000).toFixed(2).replace('.', ',');
@@ -128,14 +135,26 @@ function esito(t){
 }
 
 /* =====================================================================
-   SELETTORE
+   APERTURA DEL GIOCATORE E SCELTA DEL PERCORSO
    ===================================================================== */
+function apriGiocatorePercorsi(i){
+  const g = S.giocatori[i];
+  T = (g.percorsi || []).slice(-1)[0] || null;
+  if(T) go('perc-menu'); else go('percorsi');
+}
+
+function percGuard(name){
+  if(!S || S.tipo !== 'percorsi' || !cur()) return S ? 'sessione' : 'home';
+  if((name === 'perc-menu' || name === 'perc-prova') && !T) return 'percorsi';
+  if(name === 'perc-prova' && (provaIdx < 0 || !PP)) return 'perc-menu';
+  return name;
+}
+
 function renderSelettorePercorsi(){
-  $('#tilePercCorso').hidden = !T;
-  if(T){
-    const P = PERCORSI[T.tipo];
-    $('#tilePercCorsoS').textContent = `${P.nome} · ${etichettaAtleta(T.dati)} · ${T.prove.filter(p=>p.confermata).length}/3 prove${T.stato === 'confermata' ? ' · confermato' : ''}`;
-  }
+  const g = cur();
+  $('#psNum').textContent = g.dati.numero;
+  $('#psSquadra').textContent = g.dati.squadra;
+  $('#psNome').textContent = [g.dati.nome, g.dati.sesso].filter(Boolean).join(' · ');
   $('#percList').innerHTML = ['A','B','C'].map(k => {
     const P = PERCORSI[k];
     return `<div class="perc-card">
@@ -161,70 +180,60 @@ function mostraSchema(k){
      <button class="btn" type="button" data-doc="${P.docTab}">Tabella di valutazione</button></div>` }]);
 }
 
-function iniziaPercorso(tipo, dati, variante){
-  if(T && T.stato !== 'confermata' && T.prove.some(p => p.confermata) &&
-     !confirm(`C’è un ${PERCORSI[T.tipo].nome} non confermato (${etichettaAtleta(T.dati)}). Scartarlo e iniziarne uno nuovo?`)) return;
-  tipoScelto = tipo; atletaPrefill = dati || null; varPrefill = variante || null; editAtleta = false;
-  go('perc-atleta');
-}
-
-/* =====================================================================
-   IDENTIFICAZIONE ATLETA
-   ===================================================================== */
-const PA_CAMPI = ['squadra','numero','nome','nascita','sesso','sezione','data','valutatore'];
-function renderPercAtleta(){
-  const tipo = editAtleta ? T.tipo : tipoScelto;
-  const P = PERCORSI[tipo];
-  $('#paTitle').textContent = `${P.nome} · ${P.scopo}`;
-  const src = editAtleta ? T.dati : (atletaPrefill || {});
-  PA_CAMPI.forEach(c => $('#pa_' + c).value = src[c] || '');
-  if(!$('#pa_data').value) $('#pa_data').value = oggiISO();
-  if(!editAtleta && !atletaPrefill){
-    const ultimo = percArchivio()[0];
-    if(ultimo && !$('#pa_valutatore').value) $('#pa_valutatore').value = ultimo.dati.valutatore || '';
+/* Avvia un percorso per il giocatore aperto. Chiede quanto serve:
+   lo scopo per il C (verifica 3/4 o 2/2R) e il sesso per il B. */
+function avviaPercorso(tipo, variante, dopo){
+  const g = cur();
+  if(tipo === 'C' && !variante){
+    const V = PERCORSI.C.varianti;
+    apriSheet('Percorso C · scopo della prova', [{ nome:'Scopo', html: `
+      <p>Per quale verifica si esegue il Percorso C?</p>
+      <div class="sheet-links col">
+        <button class="btn btn-pri" type="button" data-var="34"><b>${esc(V['34'].nome)}</b>&nbsp;· soglia 20”</button>
+        <button class="btn" type="button" data-var="2R"><b>${esc(V['2R'].nome)}</b>&nbsp;· soglia 40”</button>
+      </div>
+      <p class="small muted">${esc(V['34'].testo)}</p>` }]);
+    $$('#sheetBody [data-var]').forEach(b => b.onclick = () => { chiudiSheet(); avviaPercorso('C', b.dataset.var, dopo); });
+    return;
   }
-  $('#paVariante').hidden = tipo !== 'C';
-  const v = editAtleta ? T.variante : (varPrefill || '');
-  $$('[name="pa_var"]').forEach(r => { r.checked = r.value === v; r.disabled = editAtleta && T.prove.some(p => p.confermata); });
-  $('#paSessoReq').hidden = tipo !== 'B';
-  $('#paErr').hidden = true;
-}
-function confermaPercAtleta(){
-  const tipo = editAtleta ? T.tipo : tipoScelto;
-  const v = {}; PA_CAMPI.forEach(c => v[c] = $('#pa_' + c).value.trim());
-  const variante = ($$('[name="pa_var"]').find(r => r.checked) || {}).value || null;
-  const err = [];
-  if(tipo === 'C' && !variante) err.push('lo scopo della prova');
-  if(!v.squadra) err.push('la squadra');
-  if(!v.numero) err.push('il numero');
-  if(tipo === 'B' && !v.sesso) err.push('il sesso (fasce di tempo diverse per maschi e femmine)');
-  if(err.length){ const e = $('#paErr'); e.textContent = 'Inserisci ' + err.join(', ') + '.'; e.hidden = false; return; }
-  if(editAtleta){
-    Object.assign(T.dati, v); if(tipo === 'C') T.variante = variante; salvaT(); history.back(); return;
+  if(tipo === 'B' && !g.dati.sesso){
+    apriSheet('Percorso B · sesso', [{ nome:'Sesso', html: `
+      <p>Le fasce di tempo del Percorso B sono diverse per maschi e femmine. Indica il sesso di <b>${esc(etichetta(g))}</b>:</p>
+      <div class="sheet-links two">
+        <button class="btn btn-pri" type="button" data-sesso="M">Maschio</button>
+        <button class="btn btn-pri" type="button" data-sesso="F">Femmina</button>
+      </div>` }]);
+    $$('#sheetBody [data-sesso]').forEach(b => b.onclick = () => { g.dati.sesso = b.dataset.sesso; salvaSess(); chiudiSheet(); avviaPercorso('B', variante, dopo); });
+    return;
   }
-  T = nuovoPercorso(tipo); Object.assign(T.dati, v); T.variante = tipo === 'C' ? variante : null;
-  salvaT(); popolaSuggerimenti();
-  history.replaceState(null, '', '#perc-menu'); show('perc-menu'); window.scrollTo(0,0);
+  T = nuovoPercorso(tipo, g, variante);
+  g.percorsi = g.percorsi || [];
+  g.percorsi.push(T); salvaSess();
+  dopo();
 }
 
 /* =====================================================================
    MENU PROVE
    ===================================================================== */
-function percGuard(name){
-  if(name === 'perc-atleta' && !editAtleta && !tipoScelto) return 'percorsi';
-  if(name === 'perc-atleta' && editAtleta && !T) return 'percorsi';
-  if((name === 'perc-menu' || name === 'perc-prova') && !T) return 'percorsi';
-  if(name === 'perc-prova' && (provaIdx < 0 || !PP)) return 'perc-menu';
-  return name;
-}
-
 function renderPercMenu(){
-  const P = PERCORSI[T.tipo], conf = T.stato === 'confermata';
-  $('#appbarTitle').textContent = P.nome;
+  sincronizzaT();
+  const P = PERCORSI[T.tipo], conf = T.stato === 'confermata', g = cur();
+  $('#appbarTitle').textContent = `${P.nome} · n° ${g.dati.numero}`;
   $('#pmTipo').textContent = T.tipo;
   $('#pmTitolo').textContent = T.tipo === 'C' ? `${P.nome} · ${PERCORSI.C.varianti[T.variante || '34'].nome}` : `${P.nome} · ${P.scopo}`;
   $('#pmAtleta').textContent = etichettaAtleta(T.dati) + (T.tipo === 'B' && T.dati.sesso ? ` · ${T.dati.sesso}` : '');
   $('#pmLocked').hidden = !conf;
+
+  // percorsi precedenti dello stesso giocatore in questa sessione
+  const prec = g.percorsi.slice(0, -1);
+  const st = $('#pmStoria');
+  st.hidden = !prec.length;
+  st.innerHTML = prec.length ? `<b>Percorsi precedenti</b>` + prec.map((p, i) => {
+    const e = esito(p);
+    return `<div class="ps-row"><span class="perc-badge sm">${p.tipo}</span><span>${esc(e.titolo || '–')}${p.stampata ? ' · <span class="pl-printed">&#10004; stampato</span>' : ''}</span>
+      <button class="btn sm ${p.stampata ? '' : 'btn-pri'}" type="button" data-prec="${i}">&#128424; ${p.stampata ? 'Ristampa' : 'Stampa'}</button></div>`;
+  }).join('') : '';
+
   const e = esito(T);
   $('#pmProve').innerHTML = T.prove.map((pr, i) => {
     const pt = puntiProva(T, pr);
@@ -250,8 +259,10 @@ function renderPercMenu(){
   $('#btnPmConferma').hidden = conf;
   $('#btnPmConferma').disabled = !fatte;
   $('#btnPmStampa').hidden = !conf;
+  $('#btnPmStampa').innerHTML = T.stampata ? '&#128424; Ristampa scheda / PDF' : '&#128424; Stampa scheda / PDF';
   $('#btnPmHtml').hidden = !conf;
   $('#btnPmRiapri').hidden = !conf;
+  $('#btnPmCambia').hidden = conf;
   $('#btnPmDati').hidden = conf;
   const seg = $('#btnPmSeguito');
   seg.hidden = !(conf && e.seguito);
@@ -277,11 +288,12 @@ function confermaFinalePercorso(){
   apriSheet('Conferma finale', [{ nome:'Conferma', html }]);
 }
 function eseguiConfermaPercorso(){
+  sincronizzaT();
   T.dati.note = ($('#pmNote') || {}).value || '';
-  T.stato = 'confermata'; T.confermata = new Date().toISOString();
+  T.stato = 'confermata'; T.confermata = new Date().toISOString(); T.stampata = false;
   const a = percArchivio(); const i = a.findIndex(x => x.id === T.id);
   if(i >= 0) a[i] = clone(T); else a.unshift(clone(T));
-  salvaPercArchivio(a); salvaT(); chiudiSheet();
+  salvaPercArchivio(a); salvaSess(); chiudiSheet();
   toast('Percorso confermato: stampa scheda attiva');
   renderPercMenu();
 }
@@ -455,16 +467,8 @@ function nomeFilePercorso(t){
   return `Percorso_${t.tipo}_Baskin_${parti.join('_')}_${stamp()}`;
 }
 function stampaPercorso(t){
-  if(t.stato !== 'confermata'){ toast('La stampa è attiva solo dopo la conferma finale'); return; }
-  const area = $('#printArea');
-  area.innerHTML = `<style>${CSS_SCHEDA}${CSS_PERC_EXTRA}</style>` + htmlSchedaPercorso(t, 'icons/logos/logo-baskin.svg', 'icons/logos/logo-eisi.svg');
-  const titolo = document.title; document.title = nomeFilePercorso(t);
-  document.body.classList.add('printing');
-  const fine = () => { document.body.classList.remove('printing'); document.title = titolo; window.removeEventListener('afterprint', fine); };
-  window.addEventListener('afterprint', fine);
-  const imgs = $$('img', area);
-  Promise.all(imgs.map(i => i.complete ? 1 : new Promise(res => { i.onload = i.onerror = res; })))
-    .then(() => setTimeout(() => { window.print(); setTimeout(fine, 1500); }, 50));
+  if(!t || t.stato !== 'confermata'){ toast('La stampa è attiva solo dopo la conferma finale'); return; }
+  stampaSchede([{ tipo:'percorso', item:t }], nomeFilePercorso(t));
 }
 function esportaHtmlPercorso(t){
   if(t.stato !== 'confermata'){ toast('L’export è attivo solo dopo la conferma finale'); return; }
@@ -479,6 +483,7 @@ function esportaHtmlPercorso(t){
 ${htmlSchedaPercorso(t, LOGO_BASKIN, LOGO_EISI)}
 </body></html>`;
   scarica(new Blob([doc], {type:'text/html'}), nome + '.html');
+  t.stampata = true; salvaSess();
 }
 
 /* =====================================================================
@@ -514,9 +519,13 @@ function percImporta(lista){
    ===================================================================== */
 function percClick(t){
   let b;
-  if((b = t.closest('[data-perc-new]'))){ iniziaPercorso(b.dataset.percNew); return true; }
+  if((b = t.closest('[data-perc-new]'))){
+    avviaPercorso(b.dataset.percNew, null, () => goReplace('perc-menu'));
+    return true;
+  }
   if((b = t.closest('[data-perc-schema]'))){ mostraSchema(b.dataset.percSchema); return true; }
   if((b = t.closest('[data-prova]'))){ apriProva(Number(b.dataset.prova)); return true; }
+  if((b = t.closest('[data-prec]'))){ stampaPercorso(cur().percorsi[Number(b.dataset.prec)]); return true; }
   if((b = t.closest('.opt[data-opt]'))){ PP.crit[b.dataset.crit] = b.dataset.opt; renderPercProva(); return true; }
   if((b = t.closest('.opt[data-diff="none"]'))){ PP.crit[b.dataset.crit] = []; renderPercProva(); return true; }
   if(t.closest('#btnPercSiConferma')){ eseguiConfermaPercorso(); return true; }
@@ -534,30 +543,25 @@ function percClick(t){
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  $('#tilePercCorso').onclick = () => go('perc-menu');
-  $('#btnPaConferma').onclick = confermaPercAtleta;
-  $('#btnPaAnnulla').onclick = () => history.back();
-  $('#frmPercAtleta').addEventListener('keydown', e => { if(e.key === 'Enter' && e.target.tagName === 'INPUT'){ e.preventDefault(); confermaPercAtleta(); } });
-
   $('#pmHelp').onclick = () => mostraSchema(T.tipo);
   $('#btnPmConferma').onclick = confermaFinalePercorso;
   $('#btnPmStampa').onclick = () => stampaPercorso(T);
   $('#btnPmHtml').onclick = () => esportaHtmlPercorso(T);
   $('#btnPmRiapri').onclick = () => {
     if(!confirm('Riaprire il percorso? La stampa resterà disattivata fino a una nuova conferma finale.')) return;
-    T.stato = 'bozza'; T.confermata = null; salvaT(); renderPercMenu();
+    T.stato = 'bozza'; T.confermata = null; T.stampata = false; salvaSess(); renderPercMenu();
   };
-  $('#btnPmDati').onclick = () => { editAtleta = true; go('perc-atleta'); };
-  $('#btnPmChiudi').onclick = () => {
-    if(T && T.stato === 'confermata'){ T = null; salvaT(); }   // il confermato è già in archivio
-    history.back();
+  $('#btnPmCambia').onclick = () => {
+    const g = cur();
+    if(T.prove.some(p => p.confermata) && !confirm(`Le prove già confermate del ${PERCORSI[T.tipo].nome} verranno scartate. Cambiare percorso?`)) return;
+    g.percorsi.pop(); T = null; salvaSess();
+    goReplace('percorsi');
   };
+  $('#btnPmDati').onclick = () => { editIdx = curIdx; identOrigine = 'menu'; go('giocatore'); };
+  $('#btnPmChiudi').onclick = () => history.back();
   $('#btnPmSeguito').onclick = () => {
     const e = esito(T); if(!e.seguito) return;
-    const dati = clone(T.dati); dati.note = '';
-    T = null; salvaT();   // il percorso confermato è già in archivio
-    tipoScelto = e.seguito.tipo; atletaPrefill = dati; varPrefill = e.seguito.variante || null; editAtleta = false;
-    history.replaceState(null, '', '#perc-atleta'); show('perc-atleta'); window.scrollTo(0,0);
+    avviaPercorso(e.seguito.tipo, e.seguito.variante, () => { renderPercMenu(); window.scrollTo(0,0); toast(`${PERCORSI[T.tipo].nome} avviato per lo stesso giocatore`); });
   };
 
   $('#swGo').onclick = swToggle;
@@ -571,8 +575,8 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#swManual').addEventListener('blur', () => aggiornaCrono());
   $('#ppCriteri').addEventListener('change', e => {
     const c = e.target.closest('input[data-diff]'); if(!c) return;
-    const cur = Array.isArray(PP.crit[c.dataset.crit]) ? PP.crit[c.dataset.crit] : [];
-    const set = new Set(cur); c.checked ? set.add(c.dataset.diff) : set.delete(c.dataset.diff);
+    const curr = Array.isArray(PP.crit[c.dataset.crit]) ? PP.crit[c.dataset.crit] : [];
+    const set = new Set(curr); c.checked ? set.add(c.dataset.diff) : set.delete(c.dataset.diff);
     PP.crit[c.dataset.crit] = ['A','B','C','D'].filter(x => set.has(x));
     renderPercProva();
   });
