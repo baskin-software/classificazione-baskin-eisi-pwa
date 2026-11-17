@@ -1,6 +1,6 @@
-/* data.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0 - 2026-11-14 13-34-14 */
+/* data.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0 - 2026-11-15 19-59-18 */
 /* =====================================================================
-   Griglia Valutazione Baskin EISI (PWA) - dati della griglia
+   Classificazione Baskin EISI (PWA) - dati della griglia
    Testi tratti integralmente da: Allegato A al regolamento di gioco -
    La classificazione dei ruoli nel Baskin (rev. 1 settembre 2025),
    "Griglia di valutazione delle abilità in partita" e

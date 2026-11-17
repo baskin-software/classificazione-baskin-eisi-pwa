@@ -1,6 +1,6 @@
 {
-  "name": "Griglia Valutazione Baskin EISI (PWA)",
-  "short_name": "Griglia Baskin",
+  "name": "Classificazione Baskin EISI (PWA)",
+  "short_name": "Classificazione Baskin",
   "description": "Griglia di valutazione delle abilità in partita (Baskin, ruoli 3-4-5) con il testo integrale della classificazione dei ruoli. Funziona offline.",
   "lang": "it",
   "start_url": "./index.html",

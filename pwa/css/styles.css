@@ -1,6 +1,6 @@
-/* styles.css by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0 - 2026-11-14 13-34-14 */
+/* styles.css by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0 - 2026-11-15 19-59-18 */
 /* =====================================================================
-   Griglia Valutazione Baskin EISI (PWA) - stili
+   Classificazione Baskin EISI (PWA) - stili
    Font: Arial; Arial Narrow per le intestazioni.
    ===================================================================== */
 :root{
@@ -147,23 +147,6 @@ input:focus,select:focus,textarea:focus{ outline: 2px solid var(--orange); borde
 .btn-ghost{ background: transparent; }
 .btn.sm{ min-height: 36px; padding: 5px 10px; font-size: 14px; }
 .btn.danger{ color: #b3261e; }
-#scr-griglia .actions .btn{ flex: 1 1 45%; }
-
-/* barra punteggio fissa (solo nella compilazione) */
-#scr-griglia{ padding-bottom: 76px; }
-.scorebar{
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 15;
-  display: flex; justify-content: space-around; align-items: center;
-  background: var(--dark); color: #fff; padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
-  box-shadow: 0 -2px 8px rgba(0,0,0,.25);
-}
-.sb-item{ display: flex; flex-direction: column; align-items: center; min-width: 54px; }
-.sb-item small{ font-size: 11px; opacity: .75; }
-.sb-item b{ font-family: var(--narrow); font-size: 21px; }
-.sb-role b{ width: 40px; height: 32px; border-radius: 8px; display: grid; place-items: center; background: #46515c; }
-.scorebar[data-role="3"] .sb-role b{ background: var(--r3); }
-.scorebar[data-role="4"] .sb-role b{ background: var(--r4); }
-.scorebar[data-role="5"] .sb-role b{ background: var(--r5); }
 
 /* ---------- archivio ---------- */
 .arch-main{ display: flex; gap: 10px; align-items: center; }
@@ -178,7 +161,7 @@ input:focus,select:focus,textarea:focus{ outline: 2px solid var(--orange); borde
 .medie{ padding-left: 18px; margin: 6px 0; }
 .card h3{ margin: 4px 0 6px; }
 
-/* ---------- percorsi (segnaposto) ---------- */
+/* ---------- percorsi ---------- */
 .placeholder{ text-align: center; }
 .ph-ico{ font-size: 54px; margin: 6px 0 0; }
 .placeholder .actions{ justify-content: center; }
@@ -295,7 +278,243 @@ body.sheet-open{ overflow: hidden; }
   body.printing > *:not(#printArea){ display: none !important; }
   body.printing #printArea{ display: block !important; }
   /* stampa diretta del testo integrale (senza griglia in stampa) */
-  body:not(.printing) .appbar, body:not(.printing) .scorebar, body:not(.printing) .fab-top,
+  body:not(.printing) .appbar, body:not(.printing) .bottombar, body:not(.printing) .fab-top,
   body:not(.printing) .doc-toc, body:not(.printing) .actions{ display: none !important; }
   .doc{ border: 0; }
 }
+
+/* =====================================================================
+   sessione, pulsantiera giocatori, menu abilità, conferme
+   ===================================================================== */
+.req{ color: #c0392b; }
+.err{ color: #b3261e; background: #fdecea; border-radius: 10px; padding: 8px 10px; font-weight: bold; }
+.row-sq{ grid-template-columns: 1fr 96px; }
+@media (max-width: 380px){ .row-sq{ grid-template-columns: 1fr 86px; } }
+.callout{ background: var(--orange-l); border-radius: 10px; padding: 8px 10px; font-weight: bold; }
+
+/* sessione */
+.sess-info summary{ display: flex; align-items: baseline; gap: 8px; font-family: var(--narrow); font-size: 18px; font-weight: bold; list-style: none; }
+.sess-info summary::-webkit-details-marker{ display: none; }
+.sess-info summary::after{ content: "\25BE"; margin-left: auto; color: var(--muted); }
+.sess-info[open] summary::after{ content: "\25B4"; }
+.sess-info summary small{ font-family: Arial, sans-serif; font-weight: normal; font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.players{ display: grid; gap: 10px; }
+.pl{ background: var(--card); border: 2px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.pl.conf{ border-color: var(--green); }
+.pl-btn{ display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; background: none; border: 0; padding: 12px 14px; }
+.pl-num{
+  flex: none; min-width: 54px; height: 54px; padding: 0 6px; border-radius: 12px; background: var(--dark); color: #fff;
+  display: grid; place-items: center; font-family: var(--narrow); font-size: 28px; font-weight: bold;
+}
+.pl.conf .pl-num{ background: var(--green); }
+.pl-txt{ flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.pl-txt b{ font-family: var(--narrow); font-size: 19px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-txt small{ color: var(--muted); font-size: 13px; }
+.pl-txt .pl-st{ color: var(--text); font-weight: bold; }
+.pl.conf .pl-st{ color: #2c7a3a; }
+.pl-score{ flex: none; width: 52px; text-align: center; display: flex; flex-direction: column; }
+.pl-score b{ font-family: var(--narrow); font-size: 24px; line-height: 1; }
+.pl-score small{ font-size: 11px; color: var(--muted); }
+.pl-act{ display: flex; justify-content: flex-end; gap: 6px; padding: 0 12px 10px; }
+.pl.conf .pl-act .btn-pri{ flex: 1; }
+.pl-add{
+  display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 64px;
+  border: 2px dashed var(--grey); border-radius: var(--radius); background: transparent;
+  font-family: var(--narrow); font-size: 19px; font-weight: bold; color: var(--grey);
+}
+.pl-add span{ font-size: 22px; }
+.pl-add small{ font-weight: normal; font-size: 14px; }
+
+/* menu abilità */
+.pl-head{ display: flex; align-items: center; gap: 10px; }
+.pl-id{ flex: 1; display: flex; align-items: center; gap: 12px; min-width: 0; }
+.pl-id b{ font-family: var(--narrow); font-size: 20px; display: block; }
+.pl-id small{ color: var(--muted); font-size: 13px; }
+.locked-msg{ background: #e8f5ea; color: #2c7a3a; border-radius: 10px; padding: 8px 12px; margin: 0 0 12px; }
+.ab-menu{ display: grid; gap: 8px; margin-bottom: 12px; }
+.ab-row{
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+  background: var(--card); border: 2px solid var(--line); border-radius: var(--radius); padding: 12px 12px; min-height: 64px;
+}
+.ab-row.set{ border-color: #f2c48a; }
+.ab-row:disabled{ opacity: .6; cursor: default; }
+body.locked .ab-row:disabled{ opacity: .85; }
+.ab-row .abil-n{ flex: none; }
+.ab-row.malus .abil-n{ background: var(--grey); }
+.ab-txt{ flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ab-txt b{ font-family: var(--narrow); font-size: 18px; }
+.ab-txt small{ color: var(--muted); font-size: 13px; }
+.ab-lv{
+  flex: none; min-width: 40px; height: 40px; padding: 0 4px; border-radius: 50%; display: grid; place-items: center;
+  font-family: var(--narrow); font-size: 21px; font-weight: bold; border: 2px solid var(--line); color: var(--muted);
+}
+.ab-lv.on{ background: var(--orange); border-color: var(--orange); color: #fff; border-radius: 20px; }
+.chev{ color: var(--muted); font-size: 26px; line-height: 1; }
+.actions.col{ flex-direction: column; }
+.actions.col .btn{ width: 100%; }
+.actions .btn[hidden]{ display: none; }
+.btn:disabled{ opacity: .45; cursor: default; }
+
+/* dettaglio abilità / malus */
+.lv-head{ display: flex; align-items: center; gap: 10px; margin: 4px 2px 2px; }
+.lv-head h2{ flex: 1; margin: 0; font-size: 22px; }
+.lv-head .abil-n{ width: 32px; height: 32px; font-size: 18px; }
+#scr-livello,#scr-malus,#scr-giocatore{ padding-bottom: 84px; }
+#lvList{ margin-top: 8px; }
+.bottombar{
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 15;
+  display: flex; gap: 10px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  background: rgba(255,255,255,.96); border-top: 1px solid var(--line); box-shadow: 0 -2px 8px rgba(0,0,0,.08);
+}
+.bottombar .btn{ flex: 1; min-height: 50px; font-size: 18px; }
+.bottombar .btn-pri{ flex: 2; }
+
+/* conferma finale */
+.conf-t{ width: 100%; }
+.conf-t .c{ text-align: center; width: 30%; }
+.conf-t tr.hl td{ background: var(--orange-l); }
+.sheet-links.two{ display: flex; flex-wrap: nowrap; }
+.sheet-links.two .btn{ flex: 1; min-height: 48px; font-size: 16px; }
+.sheet-links.two .btn-pri{ flex: 2; }
+.ko.small{ font-size: 14px; }
+.toast{ bottom: calc(96px + env(safe-area-inset-bottom)); }
+
+/* =====================================================================
+   percorsi A, B, C e cronometro a 7 segmenti
+   ===================================================================== */
+.perc-list{ display: grid; gap: 10px; margin-bottom: 12px; }
+.perc-card{ background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.perc-main{ display: flex; gap: 12px; align-items: flex-start; width: 100%; text-align: left; background: none; border: 0; padding: 12px 14px 6px; }
+.perc-badge{
+  flex: none; width: 46px; height: 46px; border-radius: 12px; background: var(--orange); color: #fff;
+  display: grid; place-items: center; font-family: var(--narrow); font-weight: bold; font-size: 26px;
+}
+.pl-num.perc-badge{ background: var(--orange); }
+.perc-badge.big{ width: 54px; height: 54px; font-size: 30px; }
+.perc-txt{ display: flex; flex-direction: column; gap: 2px; }
+.perc-txt b{ font-family: var(--narrow); font-size: 20px; }
+.perc-txt small{ color: var(--muted); font-size: 13.5px; }
+.perc-txt .perc-scopo{ color: var(--text); font-weight: bold; font-size: 14.5px; }
+.perc-act{ display: flex; gap: 6px; justify-content: flex-end; padding: 0 12px 12px; flex-wrap: wrap; }
+.sheet-img{ width: 100%; height: auto; border: 1px solid var(--line); border-radius: 8px; }
+#tilePercCorso{ width: 100%; margin-bottom: 12px; }
+.arch-h{ font-family: var(--narrow); color: var(--grey); margin: 14px 4px 8px; }
+
+/* identificazione atleta / variante C */
+.c-variante{ margin: 6px 0 10px; display: grid; gap: 6px; }
+.fld-l{ font-size: 13px; color: var(--muted); }
+.radio-card{ display: flex; gap: 10px; align-items: flex-start; border: 2px solid var(--line); border-radius: 12px; padding: 9px 10px; }
+.radio-card input{ width: 20px; height: 20px; margin-top: 2px; accent-color: var(--orange); flex: none; }
+.radio-card span{ display: flex; flex-direction: column; }
+.radio-card small{ color: var(--muted); font-size: 12.5px; }
+.radio-card:has(input:checked){ border-color: var(--orange); background: var(--orange-l); }
+#scr-perc-atleta,#scr-perc-prova{ padding-bottom: 84px; }
+
+/* cronometro */
+.sw{ background: #111; border-color: #111; color: #fff; text-align: center; padding: 14px 12px; }
+.sw-display{
+  display: flex; align-items: center; justify-content: center; gap: .1em; color: #ff3b30; cursor: pointer;
+  padding: 6px 0 12px; -webkit-tap-highlight-color: transparent; user-select: none;
+}
+.sw-display .seg-digit{ height: 74px; height: clamp(64px, 11vh, 120px); }
+.sw-display .seg-colon{ height: 74px; height: clamp(64px, 11vh, 120px); width: auto; color: inherit; }
+.sw-display .seg{ fill: currentColor; }
+.sw-display .seg.off{ opacity: 0.08; }
+.sw-display .dot{ fill: currentColor; }
+.sw-display.run{ color: #34c759; }
+.sw-btns{ display: flex; gap: 10px; }
+.sw-btns .btn{ flex: 1; min-height: 56px; font-size: 20px; background: #2b2f34; color: #fff; border-color: #2b2f34; }
+.sw-btns .sw-go{ flex: 2; background: #1f8f3a; border-color: #1f8f3a; }
+.sw-btns .sw-go.stop{ background: #c62828; border-color: #c62828; }
+.sw-man{ display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; font-size: 14px; color: #cfd6dd; flex-wrap: wrap; }
+.sw-man input{ width: 110px; min-height: 40px; margin-left: 6px; padding: 6px 8px; border-radius: 8px; border: 1px solid #444; background: #1c1f23; color: #fff; }
+.sw-pts{ color: var(--orange); font-weight: bold; }
+
+/* criteri della prova */
+.opts{ display: grid; gap: 6px; margin-top: 4px; }
+.opt{
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+  background: #f7f8fa; border: 2px solid var(--line); border-radius: 12px; padding: 9px 10px; font-size: 15px;
+}
+.opt-t{ flex: 1; }
+.opt-p{
+  flex: none; min-width: 34px; height: 34px; border-radius: 17px; display: grid; place-items: center;
+  font-family: var(--narrow); font-weight: bold; font-size: 18px; border: 2px solid var(--grey); color: var(--grey); background: #fff;
+}
+.opt.sel{ border-color: var(--orange); background: var(--orange-l); }
+.opt.sel .opt-p{ background: var(--orange); border-color: var(--orange); color: #fff; }
+.opt-chk{ border: 2px solid var(--line); border-radius: 12px; padding: 9px 10px; border-top-width: 2px !important; }
+.opt-chk:has(input:checked){ border-color: var(--orange); background: var(--orange-l); }
+.pp-tot{ display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.pp-tot b{ font-family: var(--narrow); font-size: 30px; }
+.pp-tot b small{ font-size: 16px; color: var(--muted); }
+
+/* esito */
+.esito{ border-radius: 12px; padding: 10px; text-align: center; color: #fff; background: var(--grey); }
+.esito small{ display: block; font-size: 12px; opacity: .9; }
+.esito b{ font-family: var(--narrow); font-size: 28px; }
+.esito.r3{ background: var(--r3); } .esito.r4{ background: var(--r4); } .esito.r5{ background: var(--r5); }
+.esito.rc{ background: #7a4fd6; } .esito.rq{ background: #a14b00; }
+.esito.r2,.esito.r2r{ background: var(--dark); }
+.arch-score.perc{ color: #fff; background: var(--grey); }
+.arch-score.perc small{ color: #fff; }
+.arch-score.perc.r3{ background: var(--r3); } .arch-score.perc.r4{ background: var(--r4); } .arch-score.perc.r5{ background: var(--r5); }
+.arch-score.perc.rc{ background: #7a4fd6; } .arch-score.perc.rq{ background: #a14b00; }
+.arch-score.perc.r2,.arch-score.perc.r2r{ background: var(--dark); }
+.ab-row .ab-lv.on{ white-space: nowrap; }
+[hidden]{ display: none !important; }
+.pp-tot{ position: sticky; bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 5; box-shadow: 0 -2px 10px rgba(0,0,0,.08); }
+
+/* =====================================================================
+   sessioni Griglia/Percorsi, colore maglia, stampa rimanenti
+   ===================================================================== */
+body:not([data-tipo="griglia"]) .only-griglia{ display: none !important; }
+body:not([data-tipo="percorsi"]) .only-percorsi{ display: none !important; }
+.tile-type{ min-height: 96px; }
+.tile-type .tile-txt b{ font-size: 21px; }
+.warn-print{ border: 2px solid var(--orange); background: #fff8ef; }
+.warn-print p{ margin: 4px 0; }
+.warn-print .actions{ margin: 8px 0 2px; }
+
+/* selettore colore (dal Tabellone, adattato a sfondo chiaro) */
+.color-row{ display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.swatch{
+  width: 38px; height: 38px; padding: 0; border-radius: 50%;
+  border: 2px solid #fff; cursor: pointer; box-shadow: 0 0 0 1px #9aa4ae;
+}
+.swatch.sel{ box-shadow: 0 0 0 3px var(--orange); }
+.swatch.custom{
+  background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red);
+  -webkit-appearance: none; appearance: none;
+}
+.swatch.custom::-webkit-color-swatch-wrapper{ padding: 0; }
+.swatch.custom::-webkit-color-swatch{ border: none; border-radius: 50%; opacity: 0; }
+.swatch.custom::-moz-color-swatch{ border: none; border-radius: 50%; opacity: 0; }
+
+.pl{ border-width: 3px; }
+.pl-num.inline{ display: inline-grid; min-width: 40px; height: 40px; font-size: 21px; vertical-align: middle; margin-right: 8px; }
+.pl-printed{ color: #2c7a3a; font-size: 13px; font-weight: bold; align-self: center; margin-right: auto; }
+.pl-act{ align-items: center; }
+.sheet-links.col{ flex-direction: column; }
+.sheet-links.col .btn{ width: 100%; min-height: 48px; }
+.ds-list{ padding-left: 20px; margin: 6px 0; }
+.perc-storia{ background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; margin-bottom: 12px; display: grid; gap: 8px; }
+.ps-row{ display: flex; align-items: center; gap: 10px; }
+.ps-row > span:nth-child(2){ flex: 1; }
+.perc-badge.sm{ width: 30px; height: 30px; font-size: 18px; border-radius: 8px; }
+.color-row input.swatch.custom{ width: 38px; height: 38px; min-height: 0; padding: 0; flex: none; }
+
+/* numero consigliato di giocatori, pulsantiera compatta */
+.pl-add.oltre{ border-style: dotted; opacity: .75; }
+.pl-add small{ display: block; }
+.pl-add{ flex-direction: column; gap: 0; padding: 8px; }
+.players.compact{ gap: 6px; }
+.players.compact .pl-btn{ padding: 8px 12px; }
+.players.compact .pl-num{ min-width: 44px; height: 44px; font-size: 22px; }
+.players.compact .pl-act{ padding: 0 12px 8px; }
+.players.compact .pl-act:not(:has(.btn-pri)):not(:has(.pl-printed)) .danger{ min-height: 30px; padding: 3px 8px; font-size: 13px; }
+.players.compact .pl{ display: flex; align-items: center; }
+.players.compact .pl-btn{ flex: 1; min-width: 0; }
+.players.compact .pl-act{ padding: 0 10px 0 0; flex: none; }
+.players.compact .pl-act .btn{ min-height: 34px; padding: 4px 10px; font-size: 13px; }
+.players.compact .pl-printed{ display: none; }

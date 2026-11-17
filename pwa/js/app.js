@@ -1,23 +1,37 @@
-/* app.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0 - 2026-11-14 13-34-14 */
+/* app.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0 - 2026-11-15 19-59-18 */
 /* =====================================================================
-   Griglia Valutazione Baskin EISI (PWA) - logica applicativa
+   Classificazione Baskin EISI (PWA) - logica applicativa
    Autore: Daniele Lolli (UncleDan)
-   PWA offline: compilazione della "Griglia di valutazione delle abilità
-   in partita" (ruoli 3, 4, 5), archivio locale, stampa/PDF ed export HTML,
-   testo integrale dell'Allegato A con aiuti contestuali.
+
+   Flusso:
+     Home → Nuova sessione: Griglia oppure Percorsi
+          → Identificazione del giocatore (squadra e n° obbligatori;
+            colore della maglia per la griglia, sesso per i percorsi)
+          → "Aggiungere un altro giocatore?" fino al No o al numero consigliato
+            (4 per la griglia, 20 per i percorsi; oltre si aggiunge dalla
+            pulsantiera, con richiesta di conferma)
+          → Pulsantiera giocatori (pulsanti nel colore della maglia)
+          → Griglia: menu abilità → abilità → Conferma → ... → Conferma finale
+            Percorsi: scelta percorso → menu prove → prova → Conferma → ...
+          → Stampa; all'uscita si chiede di stampare i giocatori rimanenti
    ===================================================================== */
 'use strict';
 
 const APP_VERSION = '26.0';
-const APP_NAME = 'Griglia Valutazione Baskin EISI (PWA)';
-const KEY_DRAFT = 'griglia-baskin-eisi-bozza-v1';
-const KEY_ARCH  = 'griglia-baskin-eisi-archivio-v1';
+const APP_NAME = 'Classificazione Baskin EISI (PWA)';
+/* numero di giocatori consigliato per sessione: oltre non si propone più
+   l'aggiunta automatica, ma si può aggiungere dalla pulsantiera confermando */
+const SOGLIA_GIOCATORI = { griglia: 4, percorsi: 20 };
+const soglia = () => SOGLIA_GIOCATORI[(S && S.tipo) || 'griglia'];
+const KEY_SESS = 'classificazione-baskin-eisi-sessione-v2';
+const KEY_ARCH = 'classificazione-baskin-eisi-archivio-v1';
 
 const $  = (s, r=document) => r.querySelector(s);
 const $$ = (s, r=document) => [...r.querySelectorAll(s)];
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clone = o => JSON.parse(JSON.stringify(o));
 
-/* ---------- storage sicuro (localStorage può mancare o lanciare) ---------- */
+/* ---------- storage sicuro ---------- */
 const store = {
   get(k, def){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; }catch(_){ return def; } },
   set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch(_){ return false; } },
@@ -25,24 +39,61 @@ const store = {
 };
 
 /* =====================================================================
-   STATO DELLA GRIGLIA
+   COLORI DELLA MAGLIA (selettore ripreso dal Tabellone Baskin EISI)
+   bianco, nero, rosso, blu, giallo, viola, verde, azzurro + personalizzato
+   ===================================================================== */
+const TEAM_COLORS = ['#ffffff','#000000','#ff2b2b','#2962ff','#ffe000','#9b30ff','#1ee63a','#29b6f6'];
+function luminance(hex){
+  const c = String(hex||'#ffffff').replace('#','');
+  if(c.length < 6) return 1;
+  const r = parseInt(c.substr(0,2),16)/255, g = parseInt(c.substr(2,2),16)/255, b = parseInt(c.substr(4,2),16)/255;
+  const lin = x => (x <= 0.03928) ? x/12.92 : Math.pow((x+0.055)/1.055, 2.4);
+  return 0.2126*lin(r) + 0.7152*lin(g) + 0.0722*lin(b);
+}
+/* colori dei pulsanti nelle sessioni Percorsi, secondo il sesso */
+const COLORI_SESSO = { M: '#3f63e0', F: '#d6248f' };   // bluette, fucsia
+/* stile del "numero" del giocatore nel colore della maglia */
+function stileMaglia(col){
+  if(!col) return '';
+  const chiaro = luminance(col) > 0.45;
+  return `background:${col};color:${chiaro ? '#1f262d' : '#fff'};${chiaro ? 'box-shadow:inset 0 0 0 2px #b9c1ca;' : ''}`;
+}
+
+/* =====================================================================
+   MODELLO DATI
    ===================================================================== */
 function oggiISO(){
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
-function nuovaGriglia(){
+const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+
+function nuovaSessione(tipo){
+  return { id: uid('s'), tipo, creata: new Date().toISOString(), data: oggiISO(), valutatore: '', gara: '', giocatori: [] };
+}
+function nuovoGiocatore(){
   const livelli = {}; ABILITA.forEach(a => livelli[a.id] = null);
   const malusA = {}; MALUS_AAII.forEach(m => malusA[m.id] = false);
   return {
-    id: 'g' + Date.now().toString(36) + Math.random().toString(36).slice(2,6),
-    creata: new Date().toISOString(), modificata: null, salvata: false,
-    dati: { nome:'', nascita:'', ruolo:'', sezione:'', squadra:'', data: oggiISO(), valutatore:'', gara:'', note:'' },
-    livelli, malusH: false, malusA
+    id: uid('g'), creata: new Date().toISOString(), stato: 'bozza', confermata: null, malusVisto: false, stampata: false,
+    dati: { squadra:'', numero:'', nome:'', nascita:'', ruolo:'', sezione:'', colore:'', sesso:'', note:'',
+            data:'', valutatore:'', gara:'' },
+    livelli, malusH: false, malusA,
+    percorsi: []     // usato solo nelle sessioni "percorsi"
   };
 }
 
-let G = store.get(KEY_DRAFT, null) || nuovaGriglia();
+let S = store.get(KEY_SESS, null);           // sessione in corso (o null)
+let curIdx = -1;                             // giocatore aperto
+let curAb = null;                            // abilità aperta
+let pendingLv = null;                        // livello scelto non ancora confermato
+let editIdx = -1;                            // giocatore in modifica dati (-1 = nuovo)
+let colScelto = '';                          // colore maglia nel modulo
+let identOrigine = 'nuova';                  // da dove si è arrivati all'identificazione
+
+const cur = () => (S && S.giocatori[curIdx]) || null;
+const isGriglia = () => !!S && S.tipo === 'griglia';
+function salvaSess(){ if(S) store.set(KEY_SESS, S); else store.del(KEY_SESS); }
 
 function calcola(g){
   const vals = ABILITA.map(a => g.livelli[a.id]).filter(v => v != null);
@@ -60,25 +111,52 @@ function calcola(g){
   return { fatti, somma, completa, base, hApplicabile, aApplicabile, malus, finale, ruolo };
 }
 
-function salvaBozza(){ G.modificata = new Date().toISOString(); store.set(KEY_DRAFT, G); }
+const etichetta = g => `${g.dati.squadra || '?'} · n° ${g.dati.numero || '?'}`;
+
+/* Elementi confermati e non ancora stampati della sessione:
+   griglie (giocatori confermati) o percorsi confermati dei giocatori */
+function daStampare(){
+  if(!S) return [];
+  if(S.tipo === 'griglia') return S.giocatori.filter(g => g.stato === 'confermata' && !g.stampata).map(g => ({ tipo:'griglia', g, item:g }));
+  const out = [];
+  S.giocatori.forEach(g => (g.percorsi || []).forEach(t => { if(t.stato === 'confermata' && !t.stampata) out.push({ tipo:'percorso', g, item:t }); }));
+  return out;
+}
 
 /* =====================================================================
    NAVIGAZIONE
    ===================================================================== */
-const SCREENS = ['home','griglia','archivio','percorsi','documento','info'];
+const SCREENS = ['home','nuova','sessione','giocatore','abilita','livello','malus','archivio','percorsi','perc-menu','perc-prova','documento','info'];
+const NEED_SESS = ['sessione','giocatore','abilita','livello','malus','percorsi','perc-menu','perc-prova'];
+
 function show(name){
+  if(name === 'esci') return;                 // gestito dalla guardia di uscita
   if(!SCREENS.includes(name)) name = 'home';
+  if(NEED_SESS.includes(name) && !S) name = 'home';
+  if(['abilita','livello','malus'].includes(name) && (!cur() || !isGriglia())) name = 'sessione';
+  if(name === 'livello' && !curAb) name = 'abilita';
+  if(name.startsWith('perc') && typeof percGuard === 'function') name = percGuard(name);
   document.body.dataset.screen = name;
+  document.body.dataset.tipo = S ? S.tipo : '';
   $$('.screen').forEach(s => s.classList.toggle('active', s.id === 'scr-' + name));
   const scr = $('#scr-' + name);
   $('#appbarTitle').textContent = scr ? scr.dataset.title : '';
-  if(name === 'archivio') renderArchivio();
-  if(name === 'griglia') renderGriglia();
+  ({ home: renderHome, sessione: renderSessione, giocatore: renderIdent, abilita: renderMenuAbilita,
+     livello: renderLivello, malus: renderMalus, archivio: renderArchivio,
+     percorsi: () => renderSelettorePercorsi(), 'perc-menu': () => renderPercMenu(), 'perc-prova': () => renderPercProva() })[name]?.();
 }
 function go(name){
   if(location.hash !== '#' + name) location.hash = name; else show(name);
 }
-window.addEventListener('hashchange', () => { show(location.hash.slice(1)); window.scrollTo(0,0); });
+/* "replace": sostituisce la voce di cronologia (es. dopo una conferma) */
+function goReplace(name){ history.replaceState(null, '', '#' + name); show(name); window.scrollTo(0,0); }
+
+function uscitaDallaHome(){
+  show('home');
+  const msg = () => toast('Premi ancora Indietro per uscire dall’app');
+  if(daStampare().length) conStampaRimanenti(msg, 'Esci senza stampare');
+  else msg();
+}
 
 function apriDoc(id){
   go('documento');
@@ -89,105 +167,382 @@ function apriDoc(id){
 }
 
 /* =====================================================================
-   COMPILAZIONE
+   HOME
    ===================================================================== */
-const CAMPI = ['nome','nascita','ruolo','sezione','squadra','data','valutatore','gara','note'];
-
-function costruisciAbilita(){
-  const box = $('#abilita');
-  box.innerHTML = ABILITA.map((a, i) => `
-    <fieldset class="card abil" id="ab-${a.id}" data-ab="${a.id}">
-      <legend><span class="abil-n">${i+1}</span> ${esc(a.nome)}
-        <button class="qbtn" type="button" data-help="ab:${a.id}" aria-label="Aiuto: ${esc(a.nome)}">?</button></legend>
-      <div class="levels" role="radiogroup" aria-label="${esc(a.nome)}">
-        ${a.livelli.map((t, j) => `
-          <button class="lvl lvl-${j+1}" type="button" role="radio" aria-checked="false" data-ab="${a.id}" data-lv="${j+1}">
-            <span class="lvl-n">${j+1}</span>
-            <span class="lvl-t">${esc(t)}<small>${esc(PROFILI_LIVELLO[j+1])}</small></span>
-          </button>`).join('')}
-      </div>
-    </fieldset>`).join('');
-
-  $('#malusAList').innerHTML = MALUS_AAII.map(m => `
-    <label class="chk"><input type="checkbox" data-malus="${m.id}" /> <span><b>${esc(m.nome)}</b><small>${esc(m.testo)}</small></span><em>-${m.punti} ${m.punti===1?'punto':'punti'}</em></label>`).join('');
+function renderHome(){
+  const attiva = !!S;
+  $('#tileSessT').textContent = attiva ? `Riprendi sessione ${S.tipo === 'griglia' ? 'Griglia' : 'Percorsi'}` : 'Nuova sessione';
+  $('#tileSessIco').innerHTML = attiva && S.tipo === 'percorsi' ? '&#9201;' : '&#9998;';
+  if(attiva){
+    const n = S.giocatori.length;
+    const c = S.tipo === 'griglia' ? S.giocatori.filter(g => g.stato === 'confermata').length
+                                   : S.giocatori.reduce((s,g) => s + (g.percorsi||[]).filter(t => t.stato === 'confermata').length, 0);
+    $('#tileSessS').textContent = `${n} giocator${n===1?'e':'i'} · ${c} ${S.tipo === 'griglia' ? 'confermat' + (c===1?'o':'i') : 'percors' + (c===1?'o':'i') + ' confermat' + (c===1?'o':'i')}${S.gara ? ' · ' + S.gara : ''}`;
+  } else $('#tileSessS').textContent = `Griglia in partita (fino a ${SOGLIA_GIOCATORI.griglia} giocatori) o percorsi (fino a ${SOGLIA_GIOCATORI.percorsi})`;
+  $('#tileNuovaSess').hidden = !attiva;
+  const ds = daStampare();
+  $('#homeDaStampare').hidden = !ds.length;
+  $('#homeDaStampareN').textContent = ds.length === 1 ? 'C’è 1 valutazione confermata non ancora stampata.' : `Ci sono ${ds.length} valutazioni confermate non ancora stampate.`;
 }
 
-function renderGriglia(){
-  CAMPI.forEach(c => { const el = $('#f_' + c); if(el && el.value !== (G.dati[c] || '')) el.value = G.dati[c] || ''; });
-  ABILITA.forEach(a => {
-    const sel = G.livelli[a.id];
-    const card = $('#ab-' + a.id);
-    card.classList.toggle('done', sel != null && !card.classList.contains('open'));
-    $$('.lvl', card).forEach(b => {
-      const on = Number(b.dataset.lv) === sel;
-      b.classList.toggle('sel', on);
-      b.setAttribute('aria-checked', on ? 'true' : 'false');
-    });
-  });
-  $('#m_h').checked = !!G.malusH;
-  $$('[data-malus]').forEach(c => c.checked = !!G.malusA[c.dataset.malus]);
-  aggiornaCalcolo();
+function iniziaSessione(tipo){
+  S = nuovaSessione(tipo); salvaSess();
+  editIdx = -1; identOrigine = 'nuova';
+  goReplace('giocatore');   // all'inizio della sessione: identificazione del giocatore
 }
 
-function aggiornaCalcolo(){
-  const r = calcola(G);
-  $('#sbDone').textContent = `${r.fatti}/5`;
-  $('#sbBase').textContent = r.completa ? r.base : (r.fatti ? `(${r.somma})` : '–');
-  $('#sbMalus').textContent = r.malus ? `-${r.malus}` : '0';
-  $('#sbFinal').textContent = r.completa ? r.finale : '–';
-  $('#sbRole').textContent = r.ruolo || '–';
-  $('#scorebar').dataset.role = r.ruolo || '';
-
-  // malus abilitati in base al punteggio
-  $('#malusH').classList.toggle('na', !r.hApplicabile);
-  $('#malusA').classList.toggle('na', !r.aApplicabile);
-  $('#m_h').disabled = !r.hApplicabile;
-  $$('[data-malus]').forEach(c => c.disabled = !r.aApplicabile);
-  let st;
-  if(!r.completa) st = 'Completa le cinque abilità: i malus applicabili si attivano in base al punteggio ottenuto.';
-  else if(r.hApplicabile) st = `Punteggio ${r.base} (tra 5 e 20): è applicabile solo il Malus H.`;
-  else st = `Punteggio ${r.base} (tra 21 e 25): è applicabile solo il Malus A.A.I.I.`;
-  $('#malusState').textContent = st;
-
-  // riquadro risultato
-  $('#risultato').innerHTML = htmlRisultato(r);
+/* Uscita dalla sessione (chiusura o nuova sessione): chiede di stampare i rimanenti */
+function conStampaRimanenti(azione, testoEsci){
+  const ds = daStampare();
+  if(!ds.length) return azione();
+  const elenco = ds.map(x => `<li>${esc(etichetta(x.g))}${x.g.dati.nome ? ' — ' + esc(x.g.dati.nome) : ''}${x.tipo === 'percorso' ? ' · ' + esc(PERCORSI[x.item.tipo].nome) : ''}</li>`).join('');
+  apriSheet('Giocatori non stampati', [{ nome:'Stampa', html: `
+    <p>${ds.length === 1 ? 'Questa valutazione confermata non è ancora stata stampata' : 'Queste valutazioni confermate non sono ancora state stampate'}:</p>
+    <ul class="ds-list">${elenco}</ul>
+    <p>Vuoi stamparle ora (un’unica stampa, una scheda per pagina)?</p>
+    <div class="sheet-links col">
+      <button class="btn btn-pri" type="button" id="btnDsStampa">&#128424; Stampa i rimanenti</button>
+      <button class="btn" type="button" id="btnDsEsci">${esc(testoEsci)}</button>
+      <button class="btn btn-ghost" type="button" data-close="1">Annulla</button>
+    </div>` }]);
+  $('#btnDsStampa').onclick = () => { chiudiSheet(); stampaMultipla(ds); };
+  $('#btnDsEsci').onclick = () => { chiudiSheet(); azione(); };
 }
 
-function htmlRisultato(r){
-  if(!r.completa){
-    return `<p class="muted">Seleziona un livello per ciascuna delle cinque abilità (${r.fatti}/5 completate).</p>`;
+function chiudiSessione(){
+  if(!S) return;
+  conStampaRimanenti(() => {
+    const aperte = isGriglia() ? S.giocatori.filter(g => g.stato !== 'confermata').length
+                               : S.giocatori.filter(g => !(g.percorsi||[]).length || g.percorsi.some(t => t.stato !== 'confermata')).length;
+    const msg = aperte
+      ? `${aperte} giocator${aperte===1?'e ha':'i hanno'} valutazioni non confermate, che verranno scartate. Chiudere la sessione?`
+      : 'Chiudere la sessione? Le valutazioni confermate restano nell’archivio.';
+    if(!confirm(msg)) return;
+    S = null; salvaSess(); history.back();   // la pulsantiera si apre sempre dalla home
+  }, 'Chiudi senza stampare');
+}
+
+/* =====================================================================
+   SESSIONE: PULSANTIERA GIOCATORI
+   ===================================================================== */
+function renderSessione(){
+  $('#appbarTitle').textContent = isGriglia() ? 'Giocatori · Griglia' : 'Giocatori · Percorsi';
+  $('#sessTipo').textContent = isGriglia() ? 'Sessione Griglia' : 'Sessione Percorsi';
+  $('#s_data').value = S.data || '';
+  $('#s_valutatore').value = S.valutatore || '';
+  $('#s_gara').value = S.gara || '';
+  $('#sGaraFld').hidden = !isGriglia();
+  $('#sHelpGriglia').hidden = !isGriglia();
+  $('#sessSummary').textContent = [fmtData(S.data), S.gara, S.valutatore].filter(Boolean).join(' · ') || 'tocca per data e valutatore';
+
+  const card = (g, i) => {
+    let stato, score, conf, printBtn = '', stampata = false;
+    if(isGriglia()){
+      const r = calcola(g);
+      conf = g.stato === 'confermata'; stampata = g.stampata;
+      stato = conf ? `Confermato · ruolo ${r.ruolo}` : (r.fatti ? `In corso · ${r.fatti}/5 abilità` : 'Da valutare');
+      score = r.completa ? `<b>${r.finale}</b><small>punti</small>` : `<small>${r.fatti}/5</small>`;
+      if(conf) printBtn = `<button class="btn sm ${stampata ? '' : 'btn-pri'}" type="button" data-print="${i}">&#128424; ${stampata ? 'Ristampa' : 'Stampa griglia'}</button>`;
+    } else {
+      const t = (g.percorsi || []).slice(-1)[0];
+      const confermati = (g.percorsi || []).filter(x => x.stato === 'confermata');
+      const nonStampati = confermati.filter(x => !x.stampata);
+      conf = !!t && t.stato === 'confermata'; stampata = confermati.length > 0 && !nonStampati.length;
+      if(!t){ stato = 'Percorso da scegliere'; score = '<small>–</small>'; }
+      else {
+        const e = esito(t), n = t.prove.filter(p => p.confermata).length;
+        stato = `${PERCORSI[t.tipo].nome} · ${conf ? 'confermato' + (e.titolo ? ' · ' + e.titolo : '') : n + '/3 prove'}`;
+        score = `<b>${t.tipo}</b><small>${conf ? 'conf.' : n + '/3'}</small>`;
+      }
+      if(confermati.length) printBtn = `<button class="btn sm ${stampata ? '' : 'btn-pri'}" type="button" data-print="${i}">&#128424; ${stampata ? 'Ristampa' : (nonStampati.length > 1 ? `Stampa ${nonStampati.length} schede` : 'Stampa scheda')}</button>`;
+    }
+    const colPl = isGriglia() ? g.dati.colore : COLORI_SESSO[g.dati.sesso];
+    const stile = stileMaglia(colPl);
+    return `
+      <div class="pl ${conf ? 'conf' : ''}" data-idx="${i}" ${colPl ? `style="border-color:${colPl}"` : ''}>
+        <button class="pl-btn" type="button" data-open="${i}">
+          <span class="pl-num" style="${stile}">${esc(g.dati.numero)}</span>
+          <span class="pl-txt"><b>${esc(g.dati.nome || g.dati.squadra)}</b><small>${esc(g.dati.nome ? g.dati.squadra : '')}</small><small class="pl-st">${esc(stato)}</small></span>
+          <span class="pl-score">${score}</span>
+        </button>
+        <div class="pl-act">
+          ${(conf || printBtn) && stampata ? '<span class="pl-printed">&#10004; stampato</span>' : ''}
+          ${printBtn || `<button class="btn sm danger" type="button" data-remove="${i}">Rimuovi</button>`}
+        </div>
+      </div>`;
+  };
+  let html = S.giocatori.map(card).join('');
+  const n = S.giocatori.length, sg = soglia();
+  html += `<button class="pl-add ${n >= sg ? 'oltre' : ''}" type="button" id="btnAddGioc"><span>&#10010;</span> Aggiungi giocatore <small>(${n} ${n === 1 ? 'inserito' : 'inseriti'} · consigliati fino a ${sg})</small></button>`;
+  $('#players').innerHTML = html;
+  $('#players').classList.toggle('compact', S.giocatori.length > 6);
+  const ds = daStampare();
+  $('#btnStampaTutti').hidden = ds.length < 2;
+}
+
+/* oltre il numero consigliato l'aggiunta resta possibile, previa conferma */
+function confermaOltreSoglia(){
+  return confirm(`La sessione ha già ${S.giocatori.length} giocatori: il numero consigliato per una sessione ${isGriglia() ? 'Griglia' : 'Percorsi'} è ${soglia()}. Sei sicuro di voler aggiungere un altro giocatore?`);
+}
+
+function apriGiocatore(i){
+  curIdx = i;
+  if(isGriglia()) go('abilita');
+  else apriGiocatorePercorsi(i);
+}
+
+/* =====================================================================
+   IDENTIFICAZIONE GIOCATORE
+   ===================================================================== */
+const P_CAMPI = ['squadra','numero','nome','nascita','ruolo','sesso','sezione'];
+
+function costruisciColori(){
+  $('#colorRow').innerHTML = TEAM_COLORS.map(c =>
+    `<button class="swatch" type="button" data-color="${c}" style="background:${c}" aria-label="Colore ${c}"></button>`).join('') +
+    `<input class="swatch custom" type="color" id="colCustom" aria-label="Colore personalizzato" />`;
+}
+function setColore(c){
+  colScelto = c || '';
+  $$('#colorRow .swatch[data-color]').forEach(sw => sw.classList.toggle('sel', sw.dataset.color === colScelto.toLowerCase()));
+  const cu = $('#colCustom');
+  const personal = colScelto && !TEAM_COLORS.includes(colScelto.toLowerCase());
+  cu.classList.toggle('sel', !!personal);
+  try{ cu.value = /^#[0-9a-f]{6}$/i.test(colScelto) ? colScelto : '#ffffff'; }catch(_){}
+  if(personal) cu.style.background = colScelto; else cu.style.background = '';
+}
+
+function renderIdent(){
+  const g = editIdx >= 0 ? S.giocatori[editIdx] : null;
+  $('#appbarTitle').textContent = isGriglia() ? 'Giocatore · Griglia' : 'Giocatore · Percorsi';
+  $('#idTitle').textContent = g ? 'Dati del giocatore' : `Nuovo giocatore n. ${S.giocatori.length + 1}`;
+  P_CAMPI.forEach(c => $('#p_' + c).value = g ? (g.dati[c] || '') : '');
+  let col = g ? g.dati.colore : '';
+  if(!g && S.giocatori.length){  // propone squadra e colore dell'ultimo giocatore
+    const u = S.giocatori[S.giocatori.length - 1];
+    $('#p_squadra').value = u.dati.squadra || '';
+    col = u.dati.colore || '';
   }
-  const attuale = Number(G.dati.ruolo) || null;
-  let conf = '';
+  setColore(col);
+  $('#idErr').hidden = true;
+  window.scrollTo(0,0);
+  setTimeout(() => (g || !$('#p_squadra').value ? $('#p_squadra') : $('#p_numero')).focus(), 80);
+}
+
+function confermaIdent(){
+  const v = {}; P_CAMPI.forEach(c => v[c] = $('#p_' + c).value.trim());
+  if(isGriglia()) v.colore = colScelto; else delete v.ruolo;
+  const err = [];
+  if(!v.squadra) err.push('la squadra');
+  if(!v.numero) err.push('il numero');
+  const dup = S.giocatori.findIndex((g, i) => i !== editIdx &&
+    g.dati.squadra.toLowerCase() === v.squadra.toLowerCase() && String(g.dati.numero) === v.numero);
+  const e = $('#idErr');
+  if(err.length){ e.textContent = 'Inserisci ' + err.join(' e ') + '.'; e.hidden = false; return; }
+  if(dup >= 0){ e.textContent = 'Questo giocatore (squadra e numero) è già nella sessione.'; e.hidden = false; return; }
+  if(editIdx >= 0){
+    const g = S.giocatori[editIdx];
+    Object.assign(g.dati, v);
+    (g.percorsi || []).forEach(t => { if(t.stato !== 'confermata') Object.assign(t.dati, v); });
+    salvaSess(); history.back(); return;
+  }
+  const g = nuovoGiocatore(); Object.assign(g.dati, v);
+  S.giocatori.push(g); salvaSess(); popolaSuggerimenti();
+  if(S.giocatori.length >= soglia()){
+    toast(`Inseriti ${S.giocatori.length} giocatori: raggiunto il numero consigliato per la sessione`);
+    vaiAiGiocatori();
+    return;
+  }
+  chiediAltroGiocatore(g);
+}
+
+/* dopo ogni inserimento: aggiungere un altro giocatore? (fino al No o a 4) */
+function chiediAltroGiocatore(g){
+  const n = S.giocatori.length;
+  apriSheet('Giocatore inserito', [{ nome:'Altro', html: `
+    <p><span class="pl-num inline" style="${stileMaglia(isGriglia() ? g.dati.colore : COLORI_SESSO[g.dati.sesso])}">${esc(g.dati.numero)}</span>
+       <b>${esc(etichetta(g))}</b>${g.dati.nome ? ' — ' + esc(g.dati.nome) : ''}</p>
+    <p>Giocatori nella sessione: <b>${n}</b> (consigliati fino a ${soglia()}). Vuoi aggiungere un altro giocatore?</p>
+    <div class="sheet-links two">
+      <button class="btn" type="button" id="btnAltroNo">No, vai ai giocatori</button>
+      <button class="btn btn-pri" type="button" id="btnAltroSi">&#10010; Sì, aggiungi</button>
+    </div>` }]);
+  $('#btnAltroSi').onclick = () => { chiudiSheet(); editIdx = -1; renderIdent(); };
+  $('#btnAltroNo').onclick = () => { chiudiSheet(); vaiAiGiocatori(); };
+}
+function vaiAiGiocatori(){
+  if(identOrigine === 'sessione') history.back(); else goReplace('sessione');
+}
+function annullaIdent(){
+  if(editIdx >= 0) return history.back();
+  if(S && !S.giocatori.length){ S = null; salvaSess(); return history.back(); }   // sessione vuota: si torna alla home
+  vaiAiGiocatori();
+}
+
+/* =====================================================================
+   MENU ABILITÀ
+   ===================================================================== */
+function renderMenuAbilita(){
+  const g = cur(), r = calcola(g), conf = g.stato === 'confermata';
+  $('#plNum').textContent = g.dati.numero;
+  $('#plNum').style.cssText = stileMaglia(g.dati.colore);
+  $('#plSquadra').textContent = g.dati.squadra;
+  $('#plNome').textContent = [g.dati.nome, g.dati.ruolo ? 'ruolo attuale ' + g.dati.ruolo : ''].filter(Boolean).join(' · ');
+  $('#lockedMsg').hidden = !conf;
+  document.body.classList.toggle('locked', conf);
+
+  const righe = ABILITA.map((a, i) => {
+    const lv = g.livelli[a.id];
+    return `<button class="ab-row ${lv ? 'set' : ''}" type="button" data-ab="${a.id}" ${conf ? 'disabled' : ''}>
+      <span class="abil-n">${i+1}</span>
+      <span class="ab-txt"><b>${esc(a.nome)}</b><small>${lv ? esc(PROFILI_LIVELLO[lv]) : 'da valutare'}</small></span>
+      <span class="ab-lv ${lv ? 'on' : ''}">${lv || '–'}</span><span class="chev">&#8250;</span>
+    </button>`;
+  }).join('');
+
+  let mStato, mVal = '–';
+  if(!r.completa) mStato = 'disponibile dopo le 5 abilità';
+  else {
+    const quale = r.hApplicabile ? 'Malus H' : 'Malus A.A.I.I.';
+    mStato = r.malus ? `${quale} applicato` : `${quale}: nessuno${g.malusVisto ? '' : ' (da verificare)'}`;
+    mVal = r.malus ? '-' + r.malus : '0';
+  }
+  const rigaMalus = `<button class="ab-row malus ${r.completa && g.malusVisto ? 'set' : ''}" type="button" id="abMalus" ${(!r.completa || conf) ? 'disabled' : ''}>
+      <span class="abil-n">M</span><span class="ab-txt"><b>Malus</b><small>${esc(mStato)}</small></span>
+      <span class="ab-lv ${r.completa ? 'on' : ''}">${mVal}</span><span class="chev">&#8250;</span></button>`;
+
+  $('#abMenu').innerHTML = righe + rigaMalus;
+  $('#risultato').innerHTML = htmlRisultato(g, r);
+
+  $('#btnConfermaFinale').hidden = conf;
+  $('#btnConfermaFinale').disabled = !r.completa;
+  $('#btnStampa').hidden = !conf;
+  $('#btnHtml').hidden = !conf;
+  $('#btnRiapri').hidden = !conf;
+}
+
+function htmlRisultato(g, r){
+  if(!r.completa){
+    return `<p class="muted">Valuta tutte e cinque le abilità (${r.fatti}/5 completate)${r.fatti ? ` · somma parziale ${r.somma}` : ''}.</p>`;
+  }
+  const attuale = Number(g.dati.ruolo) || null;
+  let confr = '';
   if(attuale){
-    conf = attuale === r.ruolo
+    confr = attuale === r.ruolo
       ? `<p class="ok">&#10004; Il risultato conferma il ruolo attuale (${attuale}).</p>`
-      : `<p class="ko">&#9888; Il risultato (ruolo ${r.ruolo}) è differente dall’arruolamento attuale (ruolo ${attuale}). Secondo le istruzioni della griglia, se le valutazioni producono un risultato differente dall’arruolamento attuale l’atleta DEVE cambiare ruolo; le tempistiche del passaggio sono stabilite dalle commissioni locali. <button class="help-link" type="button" data-doc="modalita">Leggi</button></p>`;
+      : `<p class="ko">&#9888; Il risultato (ruolo ${r.ruolo}) è differente dall’arruolamento attuale (ruolo ${attuale}). Secondo le istruzioni della griglia l’atleta DEVE cambiare ruolo; le tempistiche del passaggio sono stabilite dalle commissioni locali. <button class="help-link" type="button" data-doc="modalita">Leggi</button></p>`;
   }
   const limite = [10,11,20,21].includes(r.finale)
-    ? `<p class="muted">Punteggio a ridosso di una soglia: per i casi “borderline” vedi <button class="help-link" type="button" data-doc="casi-dubbi">Casi dubbi</button>.</p>` : '';
+    ? `<p class="muted small">Punteggio a ridosso di una soglia: per i casi “borderline” vedi <button class="help-link" type="button" data-doc="casi-dubbi">Casi dubbi</button>.</p>` : '';
   return `
     <div class="res-grid">
-      <div><small>Punteggio ottenuto</small><b>${r.base}</b></div>
+      <div><small>Punteggio</small><b>${r.base}</b></div>
       <div><small>Malus</small><b>${r.malus ? '-' + r.malus : '0'}</b></div>
-      <div><small>Dopo i malus</small><b>${r.finale}</b></div>
+      <div><small>Finale</small><b>${r.finale}</b></div>
       <div class="res-role r${r.ruolo}"><small>Ruolo</small><b>${r.ruolo}</b></div>
-    </div>
-    ${conf}${limite}
-    <p class="muted small">Soglie: 10 o inferiore = ruolo 3 · tra 11 e 20 = ruolo 4 · da 21 a 25 = ruolo 5. In presenza di più valutazioni si procede alla media matematica dei risultati (vedi Archivio).</p>`;
+    </div>${confr}${limite}`;
 }
 
-function onLivello(btn){
-  const ab = btn.dataset.ab, lv = Number(btn.dataset.lv);
-  const card = $('#ab-' + ab);
-  if(card.classList.contains('done')){ card.classList.add('open'); card.classList.remove('done'); return; }
-  G.livelli[ab] = lv;
-  card.classList.remove('open');
-  salvaBozza(); renderGriglia();
-  // passa alla prossima abilità ancora da compilare
-  const next = ABILITA.find(a => G.livelli[a.id] == null);
-  const target = next ? $('#ab-' + next.id) : $('#cardMalus');
-  setTimeout(() => target.scrollIntoView({behavior:'smooth', block:'start'}), 120);
+/* =====================================================================
+   DETTAGLIO ABILITÀ: scelta del livello con conferma
+   ===================================================================== */
+function apriAbilita(id){ curAb = id; pendingLv = cur().livelli[id]; go('livello'); }
+
+function renderLivello(){
+  const g = cur(), a = ABILITA.find(x => x.id === curAb), i = ABILITA.indexOf(a);
+  $('#lvN').textContent = i + 1;
+  $('#lvTitle').textContent = a.nome;
+  $('#appbarTitle').textContent = `Abilità ${i+1} di 5`;
+  $('#lvWho').textContent = `${etichetta(g)}${g.dati.nome ? ' · ' + g.dati.nome : ''} — scegli il livello di espressione e premi Conferma.`;
+  $('#lvList').innerHTML = a.livelli.map((t, j) => `
+    <button class="lvl ${pendingLv === j+1 ? 'sel' : ''}" type="button" role="radio" aria-checked="${pendingLv === j+1}" data-lv="${j+1}">
+      <span class="lvl-n">${j+1}</span>
+      <span class="lvl-t">${esc(t)}<small>${esc(PROFILI_LIVELLO[j+1])}</small></span>
+    </button>`).join('');
+  $('#btnLvConferma').disabled = pendingLv == null;
+}
+
+function confermaLivello(){
+  if(pendingLv == null) return;
+  const g = cur();
+  g.livelli[curAb] = pendingLv;
+  if(g.stato !== 'confermata') g.stato = 'bozza';
+  salvaSess();
+  curAb = null; pendingLv = null;
+  history.back();   // torna al menu abilità
+}
+
+/* =====================================================================
+   MALUS (con conferma)
+   ===================================================================== */
+let pendingMalus = null;
+function apriMalus(){ const g = cur(); pendingMalus = { h: g.malusH, a: clone(g.malusA), note: g.dati.note || '' }; go('malus'); }
+
+function renderMalus(){
+  const g = cur(), r = calcola(g);
+  if(!pendingMalus) pendingMalus = { h: g.malusH, a: clone(g.malusA), note: g.dati.note || '' };
+  $('#appbarTitle').textContent = 'Malus · ' + etichetta(g);
+  $('#malusAList').innerHTML = MALUS_AAII.map(m => `
+    <label class="chk"><input type="checkbox" data-malus="${m.id}" ${pendingMalus.a[m.id] ? 'checked' : ''} ${r.aApplicabile ? '' : 'disabled'} />
+      <span><b>${esc(m.nome)}</b><small>${esc(m.testo)}</small></span><em>-${m.punti} ${m.punti===1?'punto':'punti'}</em></label>`).join('');
+  $('#m_h').checked = pendingMalus.h; $('#m_h').disabled = !r.hApplicabile;
+  $('#malusH').classList.toggle('na', !r.hApplicabile);
+  $('#malusA').classList.toggle('na', !r.aApplicabile);
+  $('#malusState').textContent = r.hApplicabile
+    ? `Punteggio ${r.base} (tra 5 e 20): si applica solo il Malus H.`
+    : `Punteggio ${r.base} (tra 21 e 25): si applica solo il Malus A.A.I.I.`;
+  $('#p_note').value = pendingMalus.note;
+}
+
+function confermaMalus(){
+  const g = cur();
+  g.malusH = $('#m_h').checked;
+  $$('[data-malus]').forEach(c => g.malusA[c.dataset.malus] = c.checked);
+  g.dati.note = $('#p_note').value;
+  g.malusVisto = true;
+  salvaSess(); pendingMalus = null;
+  history.back();
+}
+
+/* =====================================================================
+   CONFERMA FINALE
+   ===================================================================== */
+function chiediConfermaFinale(){
+  const g = cur(), r = calcola(g);
+  if(!r.completa) return;
+  const avvisoMalus = !g.malusVisto
+    ? `<p class="ko small">I malus non sono stati verificati: ${r.hApplicabile ? 'Malus H (altezza inferiore a 155 cm)' : 'Malus A.A.I.I. (protesi/menomazioni agli arti inferiori)'} — se applicabile, annulla e apri la voce Malus.</p>` : '';
+  const html = `
+    <p><b>${esc(etichetta(g))}</b>${g.dati.nome ? ' — ' + esc(g.dati.nome) : ''}</p>
+    <table class="mini conf-t">
+      ${ABILITA.map(a => `<tr><td>${esc(a.nome)}</td><td class="c"><b>${g.livelli[a.id]}</b></td></tr>`).join('')}
+      <tr><td>Punteggio ottenuto</td><td class="c"><b>${r.base}</b></td></tr>
+      <tr><td>Malus</td><td class="c"><b>${r.malus ? '-' + r.malus : '0'}</b></td></tr>
+      <tr class="hl"><td>Punteggio finale → <b>Ruolo</b></td><td class="c"><b>${r.finale} → ${r.ruolo}</b></td></tr>
+    </table>
+    ${avvisoMalus}
+    <p>Confermi la valutazione di questo giocatore? Dopo la conferma sarà attiva la stampa della griglia e la valutazione verrà salvata nell’archivio.</p>
+    <div class="sheet-links two">
+      <button class="btn" type="button" data-close="1">Annulla</button>
+      <button class="btn btn-pri" type="button" id="btnSiConferma">&#10004; Conferma valutazione</button>
+    </div>`;
+  apriSheet('Conferma finale', [{nome:'Conferma', html}]);
+}
+
+function eseguiConfermaFinale(){
+  const g = cur();
+  g.stato = 'confermata'; g.confermata = new Date().toISOString(); g.stampata = false;
+  // i dati della sessione vengono copiati nella griglia del giocatore
+  g.dati.data = S.data; g.dati.valutatore = S.valutatore; g.dati.gara = S.gara;
+  salvaSess(); archiviaGiocatore(g);
+  chiudiSheet();
+  toast('Valutazione confermata: stampa griglia attiva');
+  history.back();   // torna alla pulsantiera giocatori
+}
+
+function riapri(){
+  const g = cur();
+  if(!confirm('Riaprire la valutazione? La stampa resterà disattivata fino a una nuova conferma finale.')) return;
+  g.stato = 'bozza'; g.confermata = null; g.stampata = false; salvaSess(); renderMenuAbilita();
 }
 
 /* =====================================================================
@@ -201,7 +556,6 @@ function apriSheet(titolo, tabs){
   const body = $('#sheetBody');
   const mostra = i => {
     body.innerHTML = tabs[i].html; body.scrollTop = 0;
-    // porta in vista l'elemento evidenziato (livello o colonna del ruolo)
     const hl = body.querySelector('.est-col.hl, .help-lvl.sel');
     if(hl && hl.offsetTop > body.clientHeight * 0.6) body.scrollTop = hl.offsetTop - 12;
     $$('button', tb).forEach(b => b.classList.toggle('on', Number(b.dataset.tab) === i));
@@ -217,19 +571,19 @@ function noteLegenda(testo){ return LEGENDA.filter(n => n.chiavi.some(rx => rx.t
 
 function aiutoAbilita(id){
   const a = ABILITA.find(x => x.id === id);
-  const sel = G.livelli[id];
+  const sel = pendingLv;
   const col = sel ? COLONNA_LIVELLO[sel] : null;
 
   const livelli = `
-    <p class="muted small">Tocca un livello per selezionarlo. Ogni livello corrisponde idealmente a un profilo di ruolo.</p>
+    <p class="muted small">Tocca un livello per sceglierlo, poi premi Conferma. Ogni livello corrisponde idealmente a un profilo di ruolo.</p>
     ${a.livelli.map((t,i)=>`
-      <button type="button" class="help-lvl ${sel===i+1?'sel':''}" data-pick="${id}:${i+1}">
+      <button type="button" class="help-lvl ${sel===i+1?'sel':''}" data-pick="${i+1}">
         <span class="lvl-n">${i+1}</span><span>${esc(t)}<small>${esc(PROFILI_LIVELLO[i+1])}</small></span>
       </button>`).join('')}`;
 
   const colonne = [['r3','RUOLO 3','livello 1 & 2'],['r4','RUOLO 4','livello 3 & 4'],['r5','RUOLO 5','livello 5']];
   const estesa = `
-    <p class="muted small">Esempi di come l’abilità si manifesta nei diversi ruoli (Tabella delle casistiche in forma estesa).${col ? ' È evidenziata la colonna del livello selezionato.' : ''}</p>
+    <p class="muted small">Esempi di come l’abilità si manifesta nei diversi ruoli (Tabella delle casistiche in forma estesa).${col ? ' È evidenziata la colonna del livello scelto.' : ''}</p>
     ${colonne.map(([k,t,l]) => `
       <div class="est-col ${k} ${col===k?'hl':''}">
         <h4>${t} <small>(${l})</small></h4>
@@ -240,7 +594,7 @@ function aiutoAbilita(id){
   const pert = noteLegenda(testoRif);
   const legenda = `
     ${pert.length ? `<p class="muted small">${sel ? `Note della legenda pertinenti al livello ${sel}:` : 'Note della legenda pertinenti a questa abilità:'}</p>
-      ${pert.map(n=>`<div class="leg"><b>${esc(n.segno)}</b> ${esc(n.testo)}</div>`).join('')}` : '<p class="muted">Nessuna nota della legenda riguarda direttamente il livello selezionato.</p>'}
+      ${pert.map(n=>`<div class="leg"><b>${esc(n.segno)}</b> ${esc(n.testo)}</div>`).join('')}` : '<p class="muted">Nessuna nota della legenda riguarda direttamente il livello scelto.</p>'}
     <details><summary>Tutte le note della legenda</summary>${LEGENDA.map(n=>`<div class="leg"><b>${esc(n.segno)}</b> ${esc(n.testo)}</div>`).join('')}</details>`;
 
   const altro = `
@@ -263,7 +617,7 @@ function aiutoAbilita(id){
 }
 
 function aiutoMalus(){
-  const r = calcola(G);
+  const g = cur(); const r = g ? calcola(g) : {completa:false};
   const stato = !r.completa ? 'Il punteggio non è ancora completo.'
     : r.hApplicabile ? `Con ${r.base} punti si applica solo il Malus H.` : `Con ${r.base} punti si applica solo il Malus A.A.I.I.`;
   const h = `
@@ -292,58 +646,53 @@ function aiutoDoc(ids, titolo){
 }
 
 function onHelp(key){
-  if(key.startsWith('ab:')) return aiutoAbilita(key.slice(3));
   if(key === 'malus') return aiutoMalus();
   if(key === 'modalita') return aiutoDoc(['modalita','casi-dubbi','etica'], 'Modalità di valutazione');
 }
 
 /* =====================================================================
-   ARCHIVIO
+   ARCHIVIO (valutazioni confermate)
    ===================================================================== */
 function archivio(){ return store.get(KEY_ARCH, []); }
 function salvaArchivio(a){ return store.set(KEY_ARCH, a); }
 
-function salvaInArchivio(){
+function archiviaGiocatore(g){
   const a = archivio();
-  G.salvata = true; G.modificata = new Date().toISOString();
-  const i = a.findIndex(x => x.id === G.id);
-  const copia = JSON.parse(JSON.stringify(G));
-  if(i >= 0) a[i] = copia; else a.unshift(copia);
-  if(salvaArchivio(a)){ salvaBozza(); toast('Griglia salvata nell’archivio'); popolaSuggerimenti(); }
-  else toast('Impossibile salvare: memoria del browser non disponibile');
+  const i = a.findIndex(x => x.id === g.id);
+  if(i >= 0) a[i] = clone(g); else a.unshift(clone(g));
+  if(!salvaArchivio(a)) toast('Attenzione: archivio non disponibile su questo browser');
 }
 
-function chiaveGiocatore(g){ return (g.dati.nome || '').trim().toLowerCase().replace(/\s+/g,' '); }
+const chiaveGiocatore = g => `${(g.dati.squadra||'').trim().toLowerCase()}#${String(g.dati.numero||'').trim()}`;
 
 function renderArchivio(){
   const a = archivio();
   const box = $('#archList');
-  if(!a.length){ box.innerHTML = '<div class="card"><p class="muted">Nessuna griglia salvata.</p></div>'; return; }
+  if(typeof renderArchivioPercorsi === 'function') renderArchivioPercorsi();
+  if(!a.length){ box.innerHTML = '<div class="card"><p class="muted">Nessuna griglia confermata.</p></div>'; return; }
 
-  // medie per giocatore (solo griglie complete)
   const gruppi = {};
-  a.forEach(g => { const r = calcola(g); if(!r.completa) return; const k = chiaveGiocatore(g); if(!k) return; (gruppi[k] = gruppi[k] || []).push(r.finale); });
+  a.forEach(g => { const r = calcola(g); if(r.completa) (gruppi[chiaveGiocatore(g)] = gruppi[chiaveGiocatore(g)] || []).push(r.finale); });
   const medie = Object.entries(gruppi).filter(([,v]) => v.length > 1).map(([k,v]) => {
     const m = v.reduce((s,x)=>s+x,0) / v.length;
-    const nome = a.find(g => chiaveGiocatore(g) === k).dati.nome;
+    const g = a.find(x => chiaveGiocatore(x) === k);
     const tra = (m > 10 && m < 11) || (m > 20 && m < 21);
-    return `<li><b>${esc(nome)}</b>: media di ${v.length} valutazioni = <b>${m.toFixed(2).replace('.',',')}</b> → ${tra ? 'tra due soglie (caso dubbio)' : 'ruolo ' + ruoloDaPunteggio(m)}</li>`;
+    return `<li><b>${esc(etichetta(g))}</b>${g.dati.nome ? ' ' + esc(g.dati.nome) : ''}: media di ${v.length} valutazioni = <b>${m.toFixed(2).replace('.',',')}</b> → ${tra ? 'tra due soglie (caso dubbio)' : 'ruolo ' + ruoloDaPunteggio(m)}</li>`;
   });
 
-  box.innerHTML = (medie.length ? `<div class="card"><h3>Media delle valutazioni</h3><ul class="medie">${medie.join('')}</ul><p class="muted small">In presenza di più valutazioni dello stesso giocatore si procede alla media matematica dei risultati (punteggi dopo i malus).</p></div>` : '') +
+  box.innerHTML = (medie.length ? `<div class="card"><h3>Media delle valutazioni</h3><ul class="medie">${medie.join('')}</ul><p class="muted small">In presenza di più valutazioni dello stesso giocatore (stessa squadra e numero) si procede alla media matematica dei risultati.</p></div>` : '') +
     a.map(g => {
-      const r = calcola(g);
-      const d = g.dati;
+      const r = calcola(g), d = g.dati;
       return `<div class="card arch" data-id="${g.id}">
         <div class="arch-main">
-          <div><b>${esc(d.nome || '(senza nome)')}</b><small>${esc([d.squadra, d.sezione].filter(Boolean).join(' · '))}</small>
+          <div><b>${esc(etichetta(g))}</b><small>${esc(d.nome || '')}</small>
             <small>${esc(fmtData(d.data))}${d.valutatore ? ' · ' + esc(d.valutatore) : ''}${d.ruolo ? ' · attuale ' + esc(d.ruolo) : ''}</small></div>
-          <div class="arch-score r${r.ruolo || 0}">${r.completa ? `<b>${r.finale}</b><small>ruolo ${r.ruolo}</small>` : `<small>incompleta<br/>${r.fatti}/5</small>`}</div>
+          <div class="arch-score r${r.ruolo || 0}"><b>${r.finale}</b><small>ruolo ${r.ruolo}</small></div>
         </div>
         <div class="arch-act">
-          <button class="btn sm" type="button" data-arch="apri">Apri</button>
           <button class="btn sm" type="button" data-arch="stampa">Stampa</button>
-          <button class="btn sm" type="button" data-arch="duplica" title="Nuova valutazione dello stesso giocatore">Nuova valutaz.</button>
+          <button class="btn sm" type="button" data-arch="html">HTML</button>
+          <button class="btn sm" type="button" data-arch="rivaluta">Nuova valutazione</button>
           <button class="btn sm danger" type="button" data-arch="elimina">Elimina</button>
         </div></div>`;
     }).join('');
@@ -351,45 +700,52 @@ function renderArchivio(){
 
 function onArchivio(azione, id){
   const a = archivio(); const g = a.find(x => x.id === id); if(!g) return;
-  if(azione === 'apri'){ G = JSON.parse(JSON.stringify(g)); salvaBozza(); go('griglia'); }
-  if(azione === 'stampa'){ stampa(g); }
-  if(azione === 'duplica'){
-    const n = nuovaGriglia();
-    ['nome','nascita','ruolo','sezione','squadra'].forEach(k => n.dati[k] = g.dati[k]);
-    G = n; salvaBozza(); go('griglia'); toast('Nuova valutazione con i dati del giocatore');
+  if(azione === 'stampa') stampa(g);
+  if(azione === 'html') esportaHtml(g);
+  if(azione === 'rivaluta'){
+    if(S && S.tipo !== 'griglia'){ toast('C’è una sessione Percorsi in corso: chiudila per rivalutare con la griglia'); return; }
+    if(!S){ S = nuovaSessione('griglia'); }
+    if(S.giocatori.length >= soglia() && !confermaOltreSoglia()) return;
+    if(S.giocatori.some(x => chiaveGiocatore(x) === chiaveGiocatore(g))){ toast('Giocatore già presente nella sessione'); return; }
+    const n = nuovoGiocatore();
+    P_CAMPI.concat(['colore']).forEach(k => n.dati[k] = g.dati[k] || '');
+    S.giocatori.push(n); salvaSess(); go('sessione'); toast('Giocatore aggiunto alla sessione');
   }
   if(azione === 'elimina'){
-    if(!confirm(`Eliminare la griglia di ${g.dati.nome || '(senza nome)'}?`)) return;
+    if(!confirm(`Eliminare la valutazione di ${etichetta(g)}?`)) return;
     salvaArchivio(a.filter(x => x.id !== id)); renderArchivio();
   }
 }
 
 function esportaArchivio(){
-  const blob = new Blob([JSON.stringify({app: APP_NAME, versione: APP_VERSION, esportato: new Date().toISOString(), griglie: archivio()}, null, 2)], {type:'application/json'});
-  scarica(blob, `Archivio_Griglie_Baskin_${stamp()}.json`);
+  const blob = new Blob([JSON.stringify({app: APP_NAME, versione: APP_VERSION, esportato: new Date().toISOString(), valutazioni: archivio(), percorsi: (typeof percArchivio === 'function' ? percArchivio() : [])}, null, 2)], {type:'application/json'});
+  scarica(blob, `Archivio_Classificazione_Baskin_${stamp()}.json`);
 }
 function importaArchivio(file){
   const fr = new FileReader();
   fr.onload = () => {
     try{
       const j = JSON.parse(fr.result);
-      const nuove = Array.isArray(j) ? j : j.griglie;
+      const nuove = Array.isArray(j) ? j : (j.valutazioni || j.griglie);
       if(!Array.isArray(nuove)) throw new Error('formato');
       const a = archivio(); let n = 0;
       nuove.forEach(g => { if(g && g.id && g.livelli && g.dati && !a.some(x => x.id === g.id)){ a.push(g); n++; } });
-      salvaArchivio(a); renderArchivio(); toast(`Importate ${n} griglie`);
+      const np = (Array.isArray(j.percorsi) && typeof percImporta === 'function') ? percImporta(j.percorsi) : 0;
+      salvaArchivio(a); renderArchivio(); popolaSuggerimenti(); toast(`Importate ${n} griglie e ${np} percorsi`);
     }catch(_){ toast('File non valido'); }
   };
   fr.readAsText(file);
 }
 
 function popolaSuggerimenti(){
-  const sez = [...new Set(archivio().map(g => g.dati.sezione).filter(Boolean))];
-  $('#dlSezioni').innerHTML = sez.map(s => `<option value="${esc(s)}">`).join('');
+  const tutti = archivio().concat(S ? S.giocatori : []).concat(typeof percTutti === 'function' ? percTutti() : []);
+  const uniq = k => [...new Set(tutti.map(g => g.dati[k]).filter(Boolean))];
+  $('#dlSezioni').innerHTML = uniq('sezione').map(s => `<option value="${esc(s)}">`).join('');
+  $('#dlSquadre').innerHTML = uniq('squadra').map(s => `<option value="${esc(s)}">`).join('');
 }
 
 /* =====================================================================
-   STAMPA / PDF ed EXPORT HTML
+   STAMPA / PDF ed EXPORT HTML (solo valutazioni confermate)
    ===================================================================== */
 function fmtData(iso){ if(!iso) return ''; const [y,m,d] = iso.split('-'); return d ? `${d}/${m}/${y}` : iso; }
 function stamp(){
@@ -397,8 +753,9 @@ function stamp(){
   return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`;
 }
 function nomeFile(g){
-  const n = (g.dati.nome || 'senza_nome').trim().replace(/[^\p{L}\p{N}]+/gu, '_').replace(/^_|_$/g,'');
-  return `Griglia_Valutazione_Baskin_${n}_${stamp()}`;
+  const pulisci = s => String(s || '').trim().replace(/[^\p{L}\p{N}]+/gu, '_').replace(/^_|_$/g,'');
+  const parti = [pulisci(g.dati.squadra), 'n' + pulisci(g.dati.numero), pulisci(g.dati.nome)].filter(x => x && x !== 'n');
+  return `Griglia_Valutazione_Baskin_${parti.join('_')}_${stamp()}`;
 }
 
 function htmlScheda(g, logoB, logoE){
@@ -420,9 +777,10 @@ function htmlScheda(g, logoB, logoE){
     </header>
     <h1>RISULTATI GRIGLIA DI VALUTAZIONE DELLE ABILITÀ IN PARTITA</h1>
     <table class="ps-dati">
+      <tr><th>Squadra di appartenenza</th><td>${esc(d.squadra)}</td><th>N° maglia</th><td class="c b">${esc(d.numero)}${d.colore ? ` <span class="ps-col" style="background:${esc(d.colore)}"></span>` : ''}</td></tr>
       <tr><th>Cognome e nome</th><td colspan="3">${esc(d.nome)}</td></tr>
-      <tr><th>Data di nascita</th><td>${esc(fmtData(d.nascita))}</td><th>Sezione Territoriale</th><td>${esc(d.sezione)}</td></tr>
-      <tr><th>Squadra di appartenenza</th><td>${esc(d.squadra)}</td><th>Ruolo attuale</th><td class="c b">${esc(d.ruolo)}</td></tr>
+      <tr><th>Data di nascita</th><td>${esc(fmtData(d.nascita))}</td><th>Ruolo attuale</th><td class="c b">${esc(d.ruolo)}</td></tr>
+      <tr><th>Sezione Territoriale</th><td>${esc(d.sezione)}</td><th>Sesso</th><td class="c">${esc(d.sesso || '')}</td></tr>
       <tr><th>Data osservazione</th><td>${esc(fmtData(d.data))}</td><th>Valutatore</th><td>${esc(d.valutatore)}</td></tr>
       <tr><th>Gara/e osservata/e</th><td colspan="3">${esc(d.gara)}</td></tr>
     </table>
@@ -432,24 +790,23 @@ function htmlScheda(g, logoB, logoE){
       <tr class="tot"><th class="l" colspan="6">PUNTEGGIO OTTENUTO</th><td class="c b">${r.completa ? r.base : ''}</td></tr>
     </table>
     <table class="ps-malus">
-      <tr><th class="l" rowspan="1">Malus H <small>(per punteggi tra 5 e 20)</small></th><td>${box(g.malusH, !r.hApplicabile)} H &lt; 155 cm</td><td class="c">-3 punti</td></tr>
+      <tr><th class="l">Malus H <small>(per punteggi tra 5 e 20)</small></th><td>${box(g.malusH, !r.hApplicabile)} H &lt; 155 cm</td><td class="c">-3 punti</td></tr>
       ${MALUS_AAII.map((m,i) => `<tr>${i===0?`<th class="l" rowspan="${MALUS_AAII.length}">Malus A.A.I.I. <small>(per punteggi tra 21 e 25)</small></th>`:''}<td>${box(g.malusA[m.id], !r.aApplicabile)} ${esc(m.nome)}</td><td class="c">-${m.punti} ${m.punti===1?'punto':'punti'}</td></tr>`).join('')}
       <tr class="tot"><th class="l" colspan="2">PUNTEGGIO OTTENUTO DOPO L’APPLICAZIONE DEI MALUS</th><td class="c b big">${r.completa ? r.finale : ''}</td></tr>
     </table>
     <div class="ps-fin">
       <table class="ps-ruolo"><tr><th>PUNTEGGIO FINALE</th><th>RUOLO</th></tr>${righeRuolo}</table>
-      <div class="ps-esito ${r.completa ? 'r' + r.ruolo : ''}"><small>Ruolo risultante</small><b>${r.completa ? r.ruolo : '–'}</b>${!r.completa ? '<small>griglia incompleta</small>' : ''}</div>
+      <div class="ps-esito ${r.completa ? 'r' + r.ruolo : ''}"><small>Ruolo risultante</small><b>${r.completa ? r.ruolo : '–'}</b></div>
     </div>
     ${d.note ? `<div class="ps-note"><b>Note:</b> ${esc(d.note).replace(/\n/g,'<br/>')}</div>` : ''}
     <div class="ps-firma"><span>Data ____________________</span><span>Firma del valutatore ______________________________</span></div>
     <h2 class="ps-brk">DETTAGLIO DEI LIVELLI ASSEGNATI</h2>
     <table class="ps-det"><tr><th>Abilità</th><th>Livello</th><th>Descrizione del livello (Griglia di valutazione delle abilità in partita)</th></tr>${dettagli}</table>
-    <footer class="ps-foot">${esc(FONTE)} — compilata con ${esc(APP_NAME)} v${APP_VERSION}<br/>
+    <footer class="ps-foot">${esc(FONTE)} — compilata con ${esc(APP_NAME)} v${APP_VERSION}${g.confermata ? ', confermata il ' + esc(new Date(g.confermata).toLocaleString('it-IT')) : ''}<br/>
       Il regolamento, i documenti di gara e gli altri documenti si trovano sul sito EISI nel menu Documenti <a href="https://eisi.it/eisi/documenti/">https://eisi.it/eisi/documenti/</a> oppure in Area Download.</footer>
   </div>`;
 }
 
-/* CSS della scheda: usato sia per la stampa sia per il file HTML esportato */
 const CSS_SCHEDA = `
 .ps{font-family:Arial,Helvetica,sans-serif;color:#222;font-size:10.5pt;max-width:190mm;margin:0 auto}
 .ps h1,.ps h2,.ps th{font-family:"Arial Narrow",Arial,sans-serif}
@@ -487,24 +844,51 @@ const CSS_SCHEDA = `
 .ps-det td{font-size:9.5pt}
 .ps-foot{margin-top:5mm;font-size:8pt;color:#555;text-align:center;border-top:0.3mm solid #ccc;padding-top:2mm}
 .ps-foot a{color:#f4991b}
+.ps-col{display:inline-block;width:4mm;height:4mm;border-radius:50%;border:0.3mm solid #666;vertical-align:-0.6mm;margin-left:1.5mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 @page{size:A4;margin:12mm}
 `;
 
-function stampa(g){
+/* Stampa di una o più schede (griglie e/o percorsi) in un'unica stampa,
+   una scheda per pagina. Alla chiusura della finestra di stampa le schede
+   vengono segnate come stampate. */
+function htmlElemento(x, logoB, logoE){
+  return x.tipo === 'griglia' ? htmlScheda(x.item, logoB, logoE) : htmlSchedaPercorso(x.item, logoB, logoE);
+}
+const CSS_MULTI = `.ps + .ps{break-before:page;page-break-before:always}`;
+function stampaSchede(lista, titoloFile){
+  if(!lista.length) return;
   const area = $('#printArea');
-  area.innerHTML = `<style>${CSS_SCHEDA}</style>` + htmlScheda(g, 'icons/logos/logo-baskin.svg', 'icons/logos/logo-eisi.svg');
+  area.innerHTML = `<style>${CSS_SCHEDA}${typeof CSS_PERC_EXTRA !== 'undefined' ? CSS_PERC_EXTRA : ''}${CSS_MULTI}</style>` +
+    lista.map(x => htmlElemento(x, 'icons/logos/logo-baskin.svg', 'icons/logos/logo-eisi.svg')).join('');
   const titolo = document.title;
-  document.title = nomeFile(g);
+  document.title = titoloFile;
   document.body.classList.add('printing');
-  const fine = () => { document.body.classList.remove('printing'); document.title = titolo; window.removeEventListener('afterprint', fine); };
+  let fatto = false;
+  const fine = () => {
+    if(fatto) return; fatto = true;
+    document.body.classList.remove('printing'); document.title = titolo;
+    window.removeEventListener('afterprint', fine);
+    lista.forEach(x => x.item.stampata = true);
+    salvaSess();
+    const scr = document.body.dataset.screen;
+    if(scr === 'sessione') renderSessione(); else if(scr === 'home') renderHome();
+    else if(scr === 'perc-menu') renderPercMenu();
+  };
   window.addEventListener('afterprint', fine);
-  // attende il caricamento dei loghi prima di aprire la finestra di stampa
   const imgs = $$('img', area);
   Promise.all(imgs.map(i => i.complete ? 1 : new Promise(res => { i.onload = i.onerror = res; })))
     .then(() => setTimeout(() => { window.print(); setTimeout(fine, 1500); }, 50));
 }
+function stampa(g){
+  if(g.stato !== 'confermata'){ toast('La stampa è attiva solo dopo la conferma finale'); return; }
+  stampaSchede([{ tipo:'griglia', item:g }], nomeFile(g));
+}
+function stampaMultipla(ds){
+  stampaSchede(ds.map(x => ({ tipo:x.tipo, item:x.item })), `Classificazione_Baskin_${ds.length}_schede_${stamp()}`);
+}
 
 function esportaHtml(g){
+  if(g.stato !== 'confermata'){ toast('L’export è attivo solo dopo la conferma finale'); return; }
   const nome = nomeFile(g);
   const doc = `<!DOCTYPE html>
 <html lang="it"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -516,6 +900,7 @@ function esportaHtml(g){
 ${htmlScheda(g, LOGO_BASKIN, LOGO_EISI)}
 </body></html>`;
   scarica(new Blob([doc], {type:'text/html'}), nome + '.html');
+  g.stampata = true; salvaSess();
 }
 
 function scarica(blob, nome){
@@ -556,7 +941,7 @@ async function verificaAggiornamenti(){
   try{
     const r = await fetch('service-worker.js', {cache:'no-store'});
     const txt = await r.text();
-    const m = txt.match(/CACHE_NAME\s*=\s*'griglia-valutazione-baskin-eisi-v([^']+)'/);
+    const m = txt.match(/CACHE_NAME\s*=\s*'classificazione-baskin-eisi-v([^']+)'/);
     const remota = m ? m[1] : null;
     if(remota && remota !== APP_VERSION){
       const reg = await navigator.serviceWorker.getRegistration();
@@ -570,7 +955,6 @@ async function verificaAggiornamenti(){
    EVENTI
    ===================================================================== */
 function init(){
-  costruisciAbilita();
   costruisciDocGriglia();
   popolaSuggerimenti();
   $('#infoVersion').textContent = APP_VERSION;
@@ -578,61 +962,119 @@ function init(){
   document.addEventListener('click', e => {
     const t = e.target;
     const goB = t.closest('[data-go]');
-    if(goB){
-      if(goB.dataset.new){
-        const r = calcola(G);
-        const vuota = !r.fatti && !CAMPI.some(c => c !== 'data' && G.dati[c]);
-        if(!vuota && !G.salvata && !confirm('C’è una griglia in compilazione non salvata. Iniziarne una nuova?')){ go('griglia'); return; }
-        if(!vuota) { G = nuovaGriglia(); salvaBozza(); }
-      }
-      go(goB.dataset.go); return;
-    }
+    if(goB){ go(goB.dataset.go); return; }
     const docB = t.closest('[data-doc]');
     if(docB){ e.preventDefault(); chiudiSheet(); apriDoc(docB.dataset.doc); return; }
     const helpB = t.closest('[data-help]');
     if(helpB){ e.preventDefault(); onHelp(helpB.dataset.help); return; }
-    const pick = t.closest('[data-pick]');
-    if(pick){
-      const [ab, lv] = pick.dataset.pick.split(':');
-      G.livelli[ab] = Number(lv); $('#ab-' + ab).classList.remove('open');
-      salvaBozza(); renderGriglia(); chiudiSheet(); return;
-    }
-    const lvl = t.closest('.lvl');
-    if(lvl){ onLivello(lvl); return; }
-    const leg = t.closest('.abil legend');
-    if(leg && !t.closest('.qbtn')){ const c = leg.parentElement; if(c.classList.contains('done')){ c.classList.add('open'); c.classList.remove('done'); } return; }
+    if(t.closest('#btnSiConferma')){ eseguiConfermaFinale(); return; }
     if(t.closest('[data-close]')){ chiudiSheet(); return; }
+    if(typeof percClick === 'function' && percClick(t)) return;
+
+    // pulsantiera giocatori
+    const op = t.closest('[data-open]');
+    if(op){ apriGiocatore(Number(op.dataset.open)); return; }
+    const pr = t.closest('[data-print]');
+    if(pr){
+      const g = S.giocatori[Number(pr.dataset.print)];
+      if(isGriglia()) stampa(g);
+      else {
+        const conf = g.percorsi.filter(x => x.stato === 'confermata');
+        const ns = conf.filter(x => !x.stampata);
+        if(ns.length) stampaSchede(ns.map(x => ({ tipo:'percorso', item:x })), ns.length === 1 ? nomeFilePercorso(ns[0]) : `Percorsi_Baskin_${etichetta(g).replace(/[^\p{L}\p{N}]+/gu,'_')}_${stamp()}`);
+        else stampaPercorso(conf[conf.length - 1]);
+      }
+      return;
+    }
+    const tp = t.closest('button[data-tipo]');
+    if(tp){ iniziaSessione(tp.dataset.tipo); return; }
+    const sw = t.closest('#colorRow .swatch[data-color]');
+    if(sw){ setColore(sw.dataset.color); return; }
+    const rm = t.closest('[data-remove]');
+    if(rm){
+      const i = Number(rm.dataset.remove), g = S.giocatori[i];
+      if(confirm(`Rimuovere ${etichetta(g)} dalla sessione?`)){ S.giocatori.splice(i, 1); salvaSess(); renderSessione(); }
+      return;
+    }
+    if(t.closest('#btnAddGioc')){
+      if(S.giocatori.length >= soglia() && !confermaOltreSoglia()) return;
+      editIdx = -1; identOrigine = 'sessione'; go('giocatore'); return;
+    }
+
+    // menu abilità
+    const ab = t.closest('.ab-row[data-ab]');
+    if(ab){ apriAbilita(ab.dataset.ab); return; }
+    if(t.closest('#abMalus')){ apriMalus(); return; }
+
+    // scelta livello (schermata e aiuto)
+    const lvl = t.closest('#lvList .lvl');
+    if(lvl){ pendingLv = Number(lvl.dataset.lv); renderLivello(); return; }
+    const pick = t.closest('[data-pick]');
+    if(pick){ pendingLv = Number(pick.dataset.pick); renderLivello(); chiudiSheet(); return; }
+
     const arch = t.closest('[data-arch]');
     if(arch){ onArchivio(arch.dataset.arch, arch.closest('.arch').dataset.id); return; }
   });
 
-  $('#frmGriglia').addEventListener('input', e => {
-    const id = e.target.id || '';
-    if(id.startsWith('f_')){ G.dati[id.slice(2)] = e.target.value; G.salvata = false; salvaBozza(); if(id === 'f_ruolo') aggiornaCalcolo(); }
-  });
-  $('#frmGriglia').addEventListener('change', e => {
-    const t = e.target;
-    if(t.id === 'm_h'){ G.malusH = t.checked; }
-    else if(t.dataset.malus){ G.malusA[t.dataset.malus] = t.checked; }
-    else return;
-    G.salvata = false; salvaBozza(); aggiornaCalcolo();
-  });
+  costruisciColori();
+  $('#colCustom').addEventListener('input', e => setColore(e.target.value));
+  $('#tileSessione').onclick = () => { if(S) go('sessione'); else go('nuova'); };
+  $('#tileNuovaSess').onclick = () => conStampaRimanenti(() => {
+    if(!confirm('Chiudere la sessione in corso e iniziarne una nuova? Le valutazioni non confermate verranno scartate.')) return;
+    S = null; salvaSess(); go('nuova');
+  }, 'Continua senza stampare');
+  $('#btnChiudiSess').onclick = chiudiSessione;
+  $('#btnStampaTutti').onclick = () => stampaMultipla(daStampare());
+  $('#btnHomeStampa').onclick = () => stampaMultipla(daStampare());
+  ['data','valutatore','gara'].forEach(k => $('#s_' + k).addEventListener('input', e => {
+    S[k] = e.target.value; salvaSess();
+    $('#sessSummary').textContent = [fmtData(S.data), S.gara, S.valutatore].filter(Boolean).join(' · ');
+  }));
 
-  $('#btnSalva').onclick = salvaInArchivio;
-  $('#btnStampa').onclick = () => stampa(G);
-  $('#btnHtml').onclick = () => esportaHtml(G);
-  $('#btnNuova').onclick = () => {
-    if(!G.salvata && calcola(G).fatti && !confirm('La griglia corrente non è stata salvata. Iniziarne una nuova?')) return;
-    G = nuovaGriglia(); $$('.abil').forEach(c => c.classList.remove('open')); salvaBozza(); renderGriglia(); window.scrollTo(0,0);
+  $('#btnIdConferma').onclick = confermaIdent;
+  $('#btnIdAnnulla').onclick = annullaIdent;
+  $('#frmGiocatore').addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); confermaIdent(); } });
+
+  $('#btnModDati').onclick = () => { editIdx = curIdx; identOrigine = 'menu'; go('giocatore'); };
+  $('#btnConfermaFinale').onclick = chiediConfermaFinale;
+  $('#btnStampa').onclick = () => stampa(cur());
+  $('#btnHtml').onclick = () => esportaHtml(cur());
+  $('#btnRiapri').onclick = riapri;
+  $('#btnTornaGioc').onclick = () => history.back();
+
+  $('#lvHelp').onclick = () => aiutoAbilita(curAb);
+  $('#btnLvConferma').onclick = confermaLivello;
+  $('#btnLvAnnulla').onclick = () => { pendingLv = null; curAb = null; history.back(); };
+  $('#btnMaConferma').onclick = confermaMalus;
+  $('#btnMaAnnulla').onclick = () => { pendingMalus = null; history.back(); };
+
+  $('#btnBack').onclick = () => {
+    const scr = document.body.dataset.screen;
+    if(scr === 'livello'){ pendingLv = null; curAb = null; }
+    if(scr === 'malus'){ pendingMalus = null; }
+    if(scr === 'giocatore') return annullaIdent();
+    history.back();
   };
-  $('#btnBack').onclick = () => { if(history.length > 1 && location.hash) history.back(); else go('home'); };
   $('#btnTop').onclick = () => $('#scr-documento').scrollIntoView({behavior:'smooth'});
   $('#btnExport').onclick = esportaArchivio;
   $('#fileImport').onchange = e => { if(e.target.files[0]) importaArchivio(e.target.files[0]); e.target.value = ''; };
   $('#btnUpdate').onclick = verificaAggiornamenti;
   document.addEventListener('keydown', e => { if(e.key === 'Escape') chiudiSheet(); });
 
-  show(location.hash.slice(1) || 'home');
+  // all'avvio si parte sempre dalla home (lo stato di navigazione non è persistente).
+  // Sotto la home c'è la voce "#esci": premendo Indietro dalla home, se ci sono
+  // valutazioni confermate non stampate si chiede di stamparle prima di uscire.
+  history.replaceState(null, '', '#esci');
+  history.pushState(null, '', '#home');
+  show('home');
+  window.addEventListener('hashchange', () => {
+    const h = location.hash.slice(1);
+    if(h === 'esci'){ uscitaDallaHome(); return; }
+    show(h); window.scrollTo(0,0);
+  });
+  window.addEventListener('beforeunload', e => {
+    if(daStampare().length){ e.preventDefault(); e.returnValue = ''; }
+  });
 
   if('serviceWorker' in navigator && location.protocol.startsWith('http')){
     navigator.serviceWorker.register('service-worker.js').catch(()=>{});

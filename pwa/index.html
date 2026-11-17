@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<!-- index.html by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0 - 2026-11-14 13-34-14 -->
+<!-- index.html by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0 - 2026-11-15 19-59-18 -->
 <html lang="it">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Griglia Valutazione Baskin EISI (PWA)</title>
+  <title>Classificazione Baskin EISI (PWA)</title>
 
   <meta name="theme-color" content="#2f3740" />
   <meta name="description" content="Griglia di valutazione delle abilità in partita (Baskin, ruoli 3-4-5) con il testo integrale della classificazione dei ruoli. Funziona offline." />
@@ -15,9 +15,9 @@
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Griglia Baskin" />
+  <meta name="apple-mobile-web-app-title" content="Classificazione Baskin" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="application-name" content="Griglia Valutazione Baskin EISI (PWA)" />
+  <meta name="application-name" content="Classificazione Baskin EISI (PWA)" />
 
   <link rel="stylesheet" href="css/styles.css" />
 </head>
@@ -29,8 +29,8 @@
   <button class="appbar-back" id="btnBack" type="button" aria-label="Indietro">&#8592;</button>
   <img class="logo logo-baskin" src="icons/logos/logo-baskin.svg" alt="Baskin" />
   <div class="appbar-title">
-    <span class="appbar-t1" id="appbarTitle">Griglia di valutazione</span>
-    <span class="appbar-t2">delle abilità in partita</span>
+    <span class="appbar-t1" id="appbarTitle">Classificazione Baskin</span>
+    <span class="appbar-t2">Classificazione Baskin EISI</span>
   </div>
   <span class="logo-eisi-wrap"><img class="logo logo-eisi" src="icons/logos/logo-eisi.svg" alt="EISI" /></span>
 </header>
@@ -38,17 +38,22 @@
 <main class="app">
 
   <!-- ============ HOME ============ -->
-  <section class="screen" id="scr-home" data-title="Griglia di valutazione">
-    <p class="intro">Valutazione della <strong>Sfera Tattica</strong> per i ruoli 3, 4 e 5, secondo l’Allegato A al regolamento di gioco (rev. 1 settembre 2025).</p>
+  <section class="screen" id="scr-home" data-title="Classificazione Baskin">
+    <p class="intro">Classificazione dei ruoli nel Baskin secondo l’Allegato A al regolamento di gioco (rev. 1 settembre 2025): griglia di valutazione delle abilità in partita e percorsi A, B, C.</p>
+    <div class="card warn-print" id="homeDaStampare" hidden>
+      <p><b>&#9888; <span id="homeDaStampareN"></span></b></p>
+      <div class="actions"><button class="btn btn-pri" type="button" id="btnHomeStampa">&#128424; Stampa i rimanenti</button>
+        <button class="btn" type="button" data-go="sessione">Apri la sessione</button></div>
+    </div>
     <div class="tiles">
-      <button class="tile tile-main" type="button" data-go="griglia" data-new="1">
-        <span class="tile-ico">&#9998;</span><span class="tile-txt"><b>Nuova griglia</b><small>Compila la valutazione di un giocatore</small></span>
+      <button class="tile tile-main" type="button" id="tileSessione">
+        <span class="tile-ico" id="tileSessIco">&#9998;</span><span class="tile-txt"><b id="tileSessT">Nuova sessione</b><small id="tileSessS">Griglia in partita (fino a 4 giocatori) o percorsi (fino a 20)</small></span>
+      </button>
+      <button class="tile" type="button" id="tileNuovaSess" hidden>
+        <span class="tile-ico">&#10010;</span><span class="tile-txt"><b>Nuova sessione</b><small>Chiude quella in corso e ne inizia un’altra</small></span>
       </button>
       <button class="tile" type="button" data-go="archivio">
-        <span class="tile-ico">&#128450;</span><span class="tile-txt"><b>Archivio griglie</b><small>Riprendi, stampa o elimina le griglie salvate</small></span>
-      </button>
-      <button class="tile" type="button" data-go="percorsi">
-        <span class="tile-ico">&#9201;</span><span class="tile-txt"><b>Percorsi</b><small>Percorsi A, B e C (in preparazione)</small></span>
+        <span class="tile-ico">&#128450;</span><span class="tile-txt"><b>Archivio valutazioni</b><small>Griglie e percorsi confermati: stampa, media, export</small></span>
       </button>
       <button class="tile" type="button" data-go="documento">
         <span class="tile-ico">&#128214;</span><span class="tile-txt"><b>Testo integrale</b><small>La classificazione dei ruoli nel Baskin</small></span>
@@ -59,106 +64,196 @@
     </div>
   </section>
 
-  <!-- ============ GRIGLIA ============ -->
-  <section class="screen" id="scr-griglia" data-title="Compilazione griglia">
-    <form id="frmGriglia" autocomplete="off" onsubmit="return false">
+  <!-- ============ NUOVA SESSIONE: SCELTA DEL TIPO ============ -->
+  <section class="screen" id="scr-nuova" data-title="Nuova sessione">
+    <p class="intro">Che cosa vuoi valutare in questa sessione?</p>
+    <div class="tiles">
+      <button class="tile tile-type" type="button" data-tipo="griglia">
+        <span class="tile-ico">&#9998;</span><span class="tile-txt"><b>Griglia di valutazione</b><small>Abilità in partita (Sfera Tattica) · ruoli 3, 4 e 5 · consigliati fino a 4 giocatori, con colore della maglia</small></span>
+      </button>
+      <button class="tile tile-type" type="button" data-tipo="percorsi">
+        <span class="tile-ico">&#9201;</span><span class="tile-txt"><b>Percorsi</b><small>Percorsi A, B e C con cronometro (Sfera Motoria e Tecnica) · ruolo di partenza · consigliati fino a 20 giocatori</small></span>
+      </button>
+    </div>
+  </section>
 
-      <fieldset class="card">
-        <legend>Dati del giocatore</legend>
-        <label class="fld"><span>Cognome e nome</span><input id="f_nome" type="text" /></label>
-        <div class="row2">
-          <label class="fld"><span>Data di nascita</span><input id="f_nascita" type="date" /></label>
-          <label class="fld"><span>Ruolo attuale</span>
-            <select id="f_ruolo"><option value="">—</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select>
-          </label>
-        </div>
-        <label class="fld"><span>Sezione Territoriale</span><input id="f_sezione" type="text" list="dlSezioni" /></label>
-        <label class="fld"><span>Squadra di appartenenza</span><input id="f_squadra" type="text" /></label>
-      </fieldset>
-
-      <fieldset class="card">
-        <legend>Osservazione</legend>
-        <div class="row2">
-          <label class="fld"><span>Data</span><input id="f_data" type="date" /></label>
-          <label class="fld"><span>Valutatore</span><input id="f_valutatore" type="text" /></label>
-        </div>
-        <label class="fld"><span>Gara/e osservata/e</span><input id="f_gara" type="text" placeholder="es. Squadra A - Squadra B" /></label>
-        <button class="help-link" type="button" data-help="modalita">&#9432; Modalità di valutazione e tempistiche</button>
-      </fieldset>
-
-      <div id="abilita"></div>
-
-      <fieldset class="card" id="cardMalus">
-        <legend>Malus <button class="qbtn" type="button" data-help="malus" aria-label="Aiuto sui malus">?</button></legend>
-        <div class="malus-block" id="malusH">
-          <div class="malus-head"><b>Malus H</b> <small>(per punteggi tra 5 e 20)</small></div>
-          <label class="chk"><input type="checkbox" id="m_h" /> <span>H &lt; 155 cm <small>(tolleranza 2 cm)</small></span><em>-3 punti</em></label>
-        </div>
-        <div class="malus-block" id="malusA">
-          <div class="malus-head"><b>Malus A.A.I.I.</b> <small>(per punteggi tra 21 e 25, con protesi/menomazioni agli arti inferiori)</small></div>
-          <div id="malusAList"></div>
-        </div>
-        <p class="malus-state" id="malusState"></p>
-      </fieldset>
-
-      <fieldset class="card">
-        <legend>Note</legend>
-        <textarea id="f_note" rows="3" placeholder="Osservazioni del valutatore (facoltative)"></textarea>
-      </fieldset>
-
-      <fieldset class="card result" id="cardRisultato">
-        <legend>Risultato</legend>
-        <div id="risultato"></div>
-      </fieldset>
-
-      <div class="actions">
-        <button class="btn btn-pri" type="button" id="btnSalva">&#128190; Salva</button>
-        <button class="btn" type="button" id="btnStampa">&#128424; Stampa / PDF</button>
-        <button class="btn" type="button" id="btnHtml">&#11015; Scarica HTML</button>
-        <button class="btn btn-ghost" type="button" id="btnNuova">&#10227; Nuova griglia</button>
+  <!-- ============ SESSIONE: PULSANTIERA GIOCATORI ============ -->
+  <section class="screen" id="scr-sessione" data-title="Giocatori">
+    <details class="card sess-info" id="sessInfo">
+      <summary><span id="sessTipo">Sessione</span> <small id="sessSummary"></small></summary>
+      <div class="row2">
+        <label class="fld"><span>Data</span><input id="s_data" type="date" /></label>
+        <label class="fld"><span>Valutatore</span><input id="s_valutatore" type="text" /></label>
       </div>
-    </form>
+      <label class="fld" id="sGaraFld"><span>Gara/e osservata/e</span><input id="s_gara" type="text" placeholder="es. Squadra A - Squadra B" /></label>
+      <button class="help-link" type="button" data-help="modalita" id="sHelpGriglia">&#9432; Modalità di valutazione e tempistiche</button>
+    </details>
+    <div class="players" id="players"></div>
+    <div class="actions">
+      <button class="btn" type="button" id="btnStampaTutti" hidden>&#128424; Stampa tutti i non stampati</button>
+      <button class="btn btn-ghost" type="button" id="btnChiudiSess">&#10003; Chiudi sessione</button>
+    </div>
+  </section>
 
-    <!-- barra punteggio fissa -->
-    <div class="scorebar" id="scorebar">
-      <span class="sb-item"><small>Livelli</small><b id="sbDone">0/5</b></span>
-      <span class="sb-item"><small>Punteggio</small><b id="sbBase">–</b></span>
-      <span class="sb-item"><small>Malus</small><b id="sbMalus">0</b></span>
-      <span class="sb-item"><small>Finale</small><b id="sbFinal">–</b></span>
-      <span class="sb-item sb-role"><small>Ruolo</small><b id="sbRole">–</b></span>
+  <!-- ============ IDENTIFICAZIONE GIOCATORE ============ -->
+  <section class="screen" id="scr-giocatore" data-title="Identificazione giocatore">
+    <form class="card" id="frmGiocatore" autocomplete="off" onsubmit="return false">
+      <h2 id="idTitle">Nuovo giocatore</h2>
+      <div class="row2 row-sq">
+        <label class="fld"><span>Squadra <b class="req">*</b></span><input id="p_squadra" type="text" list="dlSquadre" required /></label>
+        <label class="fld"><span>N° maglia <b class="req">*</b></span><input id="p_numero" type="text" inputmode="numeric" maxlength="3" required /></label>
+      </div>
+      <div class="fld only-griglia" id="colFld">
+        <span>Colore della maglia</span>
+        <div class="color-row" id="colorRow"></div>
+      </div>
+      <label class="fld"><span>Cognome e nome</span><input id="p_nome" type="text" /></label>
+      <div class="row2">
+        <label class="fld"><span>Data di nascita</span><input id="p_nascita" type="date" /></label>
+        <label class="fld"><span>Sesso <small class="only-percorsi">(per il Percorso B)</small></span>
+          <select id="p_sesso"><option value="">—</option><option value="M">M</option><option value="F">F</option></select>
+        </label>
+      </div>
+      <div class="row2 only-griglia">
+        <label class="fld"><span>Ruolo attuale</span>
+          <select id="p_ruolo"><option value="">—</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select>
+        </label>
+      </div>
+      <label class="fld"><span>Sezione Territoriale</span><input id="p_sezione" type="text" list="dlSezioni" /></label>
+      <p class="small muted"><b class="req">*</b> campi obbligatori</p>
+      <p class="err" id="idErr" hidden></p>
+    </form>
+    <div class="bottombar">
+      <button class="btn" type="button" id="btnIdAnnulla">Annulla</button>
+      <button class="btn btn-pri" type="button" id="btnIdConferma">Conferma</button>
+    </div>
+  </section>
+
+  <!-- ============ MENU ABILITÀ DEL GIOCATORE ============ -->
+  <section class="screen" id="scr-abilita" data-title="Abilità">
+    <div class="card pl-head">
+      <div class="pl-id"><span class="pl-num" id="plNum"></span><div><b id="plSquadra"></b><small id="plNome"></small></div></div>
+      <button class="btn sm" type="button" id="btnModDati">Dati</button>
+    </div>
+    <p class="locked-msg" id="lockedMsg" hidden>&#128274; Valutazione confermata. Per modificarla usa <b>Riapri valutazione</b>.</p>
+    <div class="ab-menu" id="abMenu"></div>
+    <fieldset class="card result"><legend>Risultato</legend><div id="risultato"></div></fieldset>
+    <div class="actions col">
+      <button class="btn btn-pri" type="button" id="btnConfermaFinale">&#10004; Conferma finale</button>
+      <button class="btn btn-pri" type="button" id="btnStampa">&#128424; Stampa griglia / PDF</button>
+      <button class="btn" type="button" id="btnHtml">&#11015; Scarica griglia HTML</button>
+      <button class="btn" type="button" id="btnRiapri">&#128275; Riapri valutazione</button>
+      <button class="btn btn-ghost" type="button" id="btnTornaGioc">&#8592; Torna ai giocatori</button>
+    </div>
+  </section>
+
+  <!-- ============ DETTAGLIO ABILITÀ (scelta del livello) ============ -->
+  <section class="screen" id="scr-livello" data-title="Abilità">
+    <div class="lv-head">
+      <span class="abil-n" id="lvN"></span><h2 id="lvTitle"></h2>
+      <button class="qbtn" type="button" id="lvHelp" aria-label="Aiuto">?</button>
+    </div>
+    <p class="small muted" id="lvWho"></p>
+    <div class="levels" id="lvList" role="radiogroup"></div>
+    <div class="bottombar">
+      <button class="btn" type="button" id="btnLvAnnulla">Annulla</button>
+      <button class="btn btn-pri" type="button" id="btnLvConferma">Conferma</button>
+    </div>
+  </section>
+
+  <!-- ============ MALUS ============ -->
+  <section class="screen" id="scr-malus" data-title="Malus">
+    <div class="lv-head"><span class="abil-n">M</span><h2>Malus</h2>
+      <button class="qbtn" type="button" data-help="malus" aria-label="Aiuto sui malus">?</button></div>
+    <p class="callout" id="malusState"></p>
+    <div class="card">
+      <div class="malus-block" id="malusH">
+        <div class="malus-head"><b>Malus H</b> <small>(per punteggi tra 5 e 20)</small></div>
+        <label class="chk"><input type="checkbox" id="m_h" /> <span>H &lt; 155 cm <small>(tolleranza 2 cm)</small></span><em>-3 punti</em></label>
+      </div>
+      <div class="malus-block" id="malusA">
+        <div class="malus-head"><b>Malus A.A.I.I.</b> <small>(per punteggi tra 21 e 25, con protesi/menomazioni agli arti inferiori)</small></div>
+        <div id="malusAList"></div>
+      </div>
+    </div>
+    <div class="card"><label class="fld"><span>Note sul giocatore (facoltative)</span><textarea id="p_note" rows="3"></textarea></label></div>
+    <div class="bottombar">
+      <button class="btn" type="button" id="btnMaAnnulla">Annulla</button>
+      <button class="btn btn-pri" type="button" id="btnMaConferma">Conferma</button>
     </div>
   </section>
 
   <!-- ============ ARCHIVIO ============ -->
-  <section class="screen" id="scr-archivio" data-title="Archivio griglie">
-    <p class="intro small">Le griglie sono salvate solo su questo dispositivo, nella memoria del browser.</p>
+  <section class="screen" id="scr-archivio" data-title="Archivio">
+    <p class="intro small">Qui finiscono le valutazioni confermate. Sono salvate solo su questo dispositivo, nella memoria del browser.</p>
+    <h3 class="arch-h">Griglie di valutazione in partita</h3>
     <div id="archList"></div>
+    <h3 class="arch-h">Percorsi</h3>
+    <div id="archPerc"></div>
     <div class="actions">
       <button class="btn" type="button" id="btnExport">&#11015; Esporta archivio (.json)</button>
       <label class="btn">&#11014; Importa archivio<input type="file" id="fileImport" accept=".json,application/json" hidden /></label>
     </div>
   </section>
 
-  <!-- ============ PERCORSI (segnaposto) ============ -->
-  <section class="screen" id="scr-percorsi" data-title="Percorsi">
-    <div class="card placeholder">
-      <p class="ph-ico">&#9201;</p>
-      <h2>Percorsi A, B e C</h2>
-      <p>Qui arriverà il selettore del percorso con cronometro e calcolo dei punteggi delle tre prove.</p>
-      <p class="small">Nel frattempo puoi consultare le tabelle e gli schemi dei percorsi nel testo integrale.</p>
-      <div class="actions">
-        <button class="btn" type="button" data-doc="sez-v">Sistema assegnazione ruoli 3, 4, 5</button>
-        <button class="btn" type="button" data-doc="sez-vi">Schemi dei percorsi</button>
+  <!-- ============ PERCORSI: SCELTA DEL PERCORSO PER IL GIOCATORE ============ -->
+  <section class="screen" id="scr-percorsi" data-title="Scegli il percorso">
+    <div class="card pl-head">
+      <div class="pl-id"><span class="pl-num" id="psNum"></span><div><b id="psSquadra"></b><small id="psNome"></small></div></div>
+    </div>
+    <p class="intro">Scegli il percorso da far eseguire. Ogni giocatore esegue tre prove; il ruolo di partenza si ricava dalle tabelle dell’Allegato A.</p>
+    <div class="perc-list" id="percList"></div>
+  </section>
+
+  <!-- ============ PERCORSI: MENU PROVE ============ -->
+  <section class="screen" id="scr-perc-menu" data-title="Percorso">
+    <div class="card pl-head">
+      <div class="pl-id"><span class="pl-num perc-badge" id="pmTipo"></span><div><b id="pmTitolo"></b><small id="pmAtleta"></small></div></div>
+      <button class="qbtn" type="button" id="pmHelp" aria-label="Aiuto sul percorso">?</button>
+    </div>
+    <p class="locked-msg" id="pmLocked" hidden>&#128274; Percorso confermato. Per modificarlo usa <b>Riapri percorso</b>.</p>
+    <div class="perc-storia" id="pmStoria" hidden></div>
+    <div class="ab-menu" id="pmProve"></div>
+    <fieldset class="card result"><legend>Esito</legend><div id="pmEsito"></div></fieldset>
+    <div class="actions col">
+      <button class="btn btn-pri" type="button" id="btnPmConferma">&#10004; Conferma finale</button>
+      <button class="btn btn-pri" type="button" id="btnPmStampa">&#128424; Stampa scheda / PDF</button>
+      <button class="btn" type="button" id="btnPmHtml">&#11015; Scarica scheda HTML</button>
+      <button class="btn" type="button" id="btnPmSeguito" hidden></button>
+      <button class="btn" type="button" id="btnPmRiapri">&#128275; Riapri percorso</button>
+      <button class="btn" type="button" id="btnPmCambia">Cambia percorso</button>
+      <button class="btn" type="button" id="btnPmDati">Dati del giocatore</button>
+      <button class="btn btn-ghost" type="button" id="btnPmChiudi">&#8592; Torna ai giocatori</button>
+    </div>
+  </section>
+
+  <!-- ============ PERCORSI: PROVA (cronometro + criteri) ============ -->
+  <section class="screen" id="scr-perc-prova" data-title="Prova">
+    <div class="sw card">
+      <div class="sw-display" id="swDisplay" role="timer" aria-live="off"></div>
+      <div class="sw-btns">
+        <button class="btn sw-go" type="button" id="swGo">&#9654; Avvia</button>
+        <button class="btn" type="button" id="swReset">Azzera</button>
       </div>
+      <div class="sw-man">
+        <label>Tempo (s) <input id="swManual" type="number" inputmode="decimal" step="0.01" min="0" placeholder="es. 21.37" /></label>
+        <span class="sw-pts" id="swPts"></span>
+      </div>
+    </div>
+    <div id="ppCriteri"></div>
+    <div class="card pp-tot" id="ppTot"></div>
+    <div class="bottombar">
+      <button class="btn" type="button" id="btnPpAnnulla">Annulla</button>
+      <button class="btn btn-pri" type="button" id="btnPpConferma">Conferma prova</button>
     </div>
   </section>
 
   <!-- ============ INFORMAZIONI ============ -->
   <section class="screen" id="scr-info" data-title="Informazioni">
     <div class="card">
-      <h2>Griglia Valutazione Baskin EISI (PWA)</h2>
+      <h2>Classificazione Baskin EISI (PWA)</h2>
       <p>Versione <b id="infoVersion"></b></p>
-      <p>App per compilare da smartphone, anche offline, la <em>Griglia di valutazione delle abilità in partita</em> prevista dall’Allegato A al regolamento di gioco (<em>La classificazione dei ruoli nel Baskin</em>, rev. 1 settembre 2025), di cui contiene il testo integrale.</p>
+      <p>App per compilare da smartphone, anche offline, la <em>Griglia di valutazione delle abilità in partita</em> e i percorsi A, B, C (sessioni consigliate fino a 4 giocatori per la griglia e 20 per i percorsi) prevista dall’Allegato A al regolamento di gioco (<em>La classificazione dei ruoli nel Baskin</em>, rev. 1 settembre 2025), di cui contiene il testo integrale.</p>
       <p><b>Privacy:</b> i dati inseriti restano esclusivamente su questo dispositivo (memoria del browser). Nessun dato viene inviato in rete.</p>
       <p>Autore: Daniele Lolli (UncleDan).</p>
       <p class="small">I loghi «EISI» e «Baskin» sono marchi registrati rispettivamente da Ente Italiano Sport Inclusivi e Associazione Baskin.</p>
@@ -632,9 +727,13 @@
 <div class="toast" id="toast" hidden></div>
 
 <datalist id="dlSezioni"></datalist>
+<datalist id="dlSquadre"></datalist>
 
 <script src="js/data.js"></script>
 <script src="js/logos.js"></script>
+<script src="js/seg.js"></script>
+<script src="js/percorsi-data.js"></script>
 <script src="js/app.js"></script>
+<script src="js/percorsi.js"></script>
 </body>
 </html>
