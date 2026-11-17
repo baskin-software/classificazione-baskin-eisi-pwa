@@ -98,9 +98,22 @@ Versionamento allineato al Tabellone Baskin EISI (PWA) e all'app Cast:
 `versione.sottoversione[.patch]`, con la versione maggiore pari all'anno a due
 cifre. La patch si indica solo quando c'è: il primo rilascio è `26.0`, poi `26.0.1`
 per una correzione, `26.1` per nuove funzioni, `27.0` per il primo rilascio
-dell'anno successivo. A ogni rilascio aggiornare insieme `APP_VERSION` in
-`pwa/js/app.js` e `CACHE_NAME` in `pwa/service-worker.js`, con il tag git
-corrispondente (`v26.0`).
+dell'anno successivo.
+
+Prima di ogni rilascio si pubblicano versioni beta numerate: `26.0b1`, `26.0b2`,
+`26.0b3`… Ogni beta è una build distinta (la cache dell'app si aggiorna e la
+scheda stampata riporta il numero di beta). Quando la beta è approvata si
+rilascia `26.0` senza altre modifiche funzionali. Lo stesso vale per i rilasci
+successivi (`26.1b1` → `26.1`).
+
+A ogni build aggiornare insieme `APP_VERSION` in `pwa/js/app.js` e `CACHE_NAME`
+in `pwa/service-worker.js`, con il tag git corrispondente (`v26.0b1`, poi `v26.0`).
+
+## Pubblicazione su GitHub Pages
+
+Il workflow `.github/workflows/beta.yml` pubblica a ogni push sul ramo `beta`.
+Prima del primo deploy, nel repository: **Settings → Pages → Build and deployment
+→ Source: GitHub Actions**. L'app sarà raggiungibile in `/pwa/`.
 
 ## Licenza
 

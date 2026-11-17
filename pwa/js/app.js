@@ -1,4 +1,4 @@
-/* app.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0 - 2026-11-15 19-59-18 */
+/* app.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b1 - 2026-11-17 18-44-14 */
 /* =====================================================================
    Classificazione Baskin EISI (PWA) - logica applicativa
    Autore: Daniele Lolli (UncleDan)
@@ -17,7 +17,7 @@
    ===================================================================== */
 'use strict';
 
-const APP_VERSION = '26.0';
+const APP_VERSION = '26.0b1';
 const APP_NAME = 'Classificazione Baskin EISI (PWA)';
 /* numero di giocatori consigliato per sessione: oltre non si propone più
    l'aggiunta automatica, ma si può aggiungere dalla pulsantiera confermando */

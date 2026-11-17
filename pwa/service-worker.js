@@ -1,11 +1,11 @@
-/* service-worker.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0 - 2026-11-15 19-59-18 */
+/* service-worker.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b1 - 2026-11-17 18-44-14 */
 /* =====================================================================
    Service worker - Classificazione Baskin EISI (PWA)
    Cache-first per il funzionamento completamente offline.
    Aggiornare CACHE_NAME ad ogni rilascio (deve coincidere con APP_VERSION
    in js/app.js): invalida la vecchia cache e dichiara la versione del file.
    ===================================================================== */
-const CACHE_NAME = 'classificazione-baskin-eisi-v26.0';
+const CACHE_NAME = 'classificazione-baskin-eisi-v26.0b1';
 
 const ASSETS = [
   './',
