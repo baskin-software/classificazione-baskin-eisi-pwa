@@ -25,16 +25,20 @@ Baskin (rev. 1 settembre 2025)*. Pensata per essere ospitata su **GitHub Pages**
 ### Funzioni
 
 - **Sessione**: si sceglie se la sessione è di **Griglia** (valutazione delle
-  abilità in partita) o di **Percorsi** (A, B, C), con fino a **4 giocatori**.
+  abilità in partita) o di **Percorsi** (A, B, C). Numero di giocatori
+  consigliato: **4** per la griglia, **20** per i percorsi.
 - **Inserimento dei giocatori**: squadra e numero di maglia obbligatori,
-  cognome e nome e data di nascita facoltativi; per la griglia anche il
-  **colore della maglia** (selettore del Tabellone Baskin EISI: otto colori
-  base più colore personalizzato) e il ruolo attuale, per i percorsi il sesso
-  (necessario per il Percorso B, chiesto comunque all'avvio del B se manca).
-  Dopo ogni inserimento l'app chiede se aggiungere un altro giocatore, fino
-  alla risposta "No" o al quarto giocatore.
-- **Pulsantiera giocatori**: un pulsante per giocatore, nel colore della maglia
-  (sessioni Griglia), con stato, punteggio/esito e pulsante di stampa.
+  cognome e nome, data di nascita e sesso facoltativi (il sesso serve per il
+  Percorso B e viene chiesto all'avvio del B se manca); per la griglia anche
+  il **colore della maglia** (selettore del Tabellone Baskin EISI: otto colori
+  base più colore personalizzato) e il ruolo attuale. Dopo ogni inserimento
+  l'app chiede se aggiungere un altro giocatore, fino alla risposta "No" o al
+  numero consigliato; oltre si può ancora aggiungere dalla pulsantiera, con
+  richiesta di conferma ogni volta.
+- **Pulsantiera giocatori**: un pulsante per giocatore con stato,
+  punteggio/esito e pulsante di stampa; nelle sessioni Griglia è nel colore
+  della maglia, nelle sessioni Percorsi è bluette (M) o fucsia (F) secondo il
+  sesso. Con più di 6 giocatori la pulsantiera diventa compatta.
 - **Griglia**: menu delle cinque abilità più la voce Malus; ogni abilità si
   apre, si sceglie il livello, si **conferma** e si torna al menu; calcolo
   automatico (malus solo nella fascia prevista), confronto con il ruolo
@@ -92,11 +96,11 @@ pwa/
 
 Versionamento allineato al Tabellone Baskin EISI (PWA) e all'app Cast:
 `versione.sottoversione[.patch]`, con la versione maggiore pari all'anno a due
-cifre. La patch si indica solo quando c'è: `26.3`, poi `26.3.1` per una
-correzione, `26.4` per nuove funzioni, `27.0` per il primo rilascio dell'anno
+cifre. La patch si indica solo quando c'è: `26.4`, poi `26.4.1` per una
+correzione, `26.5` per nuove funzioni, `27.0` per il primo rilascio dell'anno
 successivo. A ogni rilascio aggiornare insieme `APP_VERSION` in
 `pwa/js/app.js` e `CACHE_NAME` in `pwa/service-worker.js`, con il tag git
-corrispondente (`v26.3`).
+corrispondente (`v26.4`).
 
 ## Licenza
 

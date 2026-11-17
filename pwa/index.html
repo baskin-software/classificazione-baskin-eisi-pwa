@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- index.html by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.3 - 2026-11-14 19-13-26 -->
+<!-- index.html by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.4 - 2026-11-14 20-32-24 -->
 <html lang="it">
 <head>
   <meta charset="UTF-8" />
@@ -47,7 +47,7 @@
     </div>
     <div class="tiles">
       <button class="tile tile-main" type="button" id="tileSessione">
-        <span class="tile-ico" id="tileSessIco">&#9998;</span><span class="tile-txt"><b id="tileSessT">Nuova sessione</b><small id="tileSessS">Griglia in partita o percorsi, fino a 4 giocatori</small></span>
+        <span class="tile-ico" id="tileSessIco">&#9998;</span><span class="tile-txt"><b id="tileSessT">Nuova sessione</b><small id="tileSessS">Griglia in partita (fino a 4 giocatori) o percorsi (fino a 20)</small></span>
       </button>
       <button class="tile" type="button" id="tileNuovaSess" hidden>
         <span class="tile-ico">&#10010;</span><span class="tile-txt"><b>Nuova sessione</b><small>Chiude quella in corso e ne inizia un’altra</small></span>
@@ -66,13 +66,13 @@
 
   <!-- ============ NUOVA SESSIONE: SCELTA DEL TIPO ============ -->
   <section class="screen" id="scr-nuova" data-title="Nuova sessione">
-    <p class="intro">Che cosa vuoi valutare in questa sessione? (fino a 4 giocatori)</p>
+    <p class="intro">Che cosa vuoi valutare in questa sessione?</p>
     <div class="tiles">
       <button class="tile tile-type" type="button" data-tipo="griglia">
-        <span class="tile-ico">&#9998;</span><span class="tile-txt"><b>Griglia di valutazione</b><small>Abilità in partita (Sfera Tattica) · ruoli 3, 4 e 5 · giocatori con colore della maglia</small></span>
+        <span class="tile-ico">&#9998;</span><span class="tile-txt"><b>Griglia di valutazione</b><small>Abilità in partita (Sfera Tattica) · ruoli 3, 4 e 5 · consigliati fino a 4 giocatori, con colore della maglia</small></span>
       </button>
       <button class="tile tile-type" type="button" data-tipo="percorsi">
-        <span class="tile-ico">&#9201;</span><span class="tile-txt"><b>Percorsi</b><small>Percorsi A, B e C con cronometro (Sfera Motoria e Tecnica) · ruolo di partenza</small></span>
+        <span class="tile-ico">&#9201;</span><span class="tile-txt"><b>Percorsi</b><small>Percorsi A, B e C con cronometro (Sfera Motoria e Tecnica) · ruolo di partenza · consigliati fino a 20 giocatori</small></span>
       </button>
     </div>
   </section>
@@ -110,11 +110,13 @@
       <label class="fld"><span>Cognome e nome</span><input id="p_nome" type="text" /></label>
       <div class="row2">
         <label class="fld"><span>Data di nascita</span><input id="p_nascita" type="date" /></label>
-        <label class="fld only-griglia"><span>Ruolo attuale</span>
-          <select id="p_ruolo"><option value="">—</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select>
-        </label>
-        <label class="fld only-percorsi"><span>Sesso <small>(per il Percorso B)</small></span>
+        <label class="fld"><span>Sesso <small class="only-percorsi">(per il Percorso B)</small></span>
           <select id="p_sesso"><option value="">—</option><option value="M">M</option><option value="F">F</option></select>
+        </label>
+      </div>
+      <div class="row2 only-griglia">
+        <label class="fld"><span>Ruolo attuale</span>
+          <select id="p_ruolo"><option value="">—</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select>
         </label>
       </div>
       <label class="fld"><span>Sezione Territoriale</span><input id="p_sezione" type="text" list="dlSezioni" /></label>
@@ -251,7 +253,7 @@
     <div class="card">
       <h2>Classificazione Baskin EISI (PWA)</h2>
       <p>Versione <b id="infoVersion"></b></p>
-      <p>App per compilare da smartphone, anche offline, la <em>Griglia di valutazione delle abilità in partita</em> e i percorsi A, B, C (sessioni fino a 4 giocatori) prevista dall’Allegato A al regolamento di gioco (<em>La classificazione dei ruoli nel Baskin</em>, rev. 1 settembre 2025), di cui contiene il testo integrale.</p>
+      <p>App per compilare da smartphone, anche offline, la <em>Griglia di valutazione delle abilità in partita</em> e i percorsi A, B, C (sessioni consigliate fino a 4 giocatori per la griglia e 20 per i percorsi) prevista dall’Allegato A al regolamento di gioco (<em>La classificazione dei ruoli nel Baskin</em>, rev. 1 settembre 2025), di cui contiene il testo integrale.</p>
       <p><b>Privacy:</b> i dati inseriti restano esclusivamente su questo dispositivo (memoria del browser). Nessun dato viene inviato in rete.</p>
       <p>Autore: Daniele Lolli (UncleDan).</p>
       <p class="small">I loghi «EISI» e «Baskin» sono marchi registrati rispettivamente da Ente Italiano Sport Inclusivi e Associazione Baskin.</p>

@@ -1,4 +1,4 @@
-/* percorsi.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.3 - 2026-11-14 19-13-26 */
+/* percorsi.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.4 - 2026-11-14 20-32-24 */
 /* =====================================================================
    Classificazione Baskin EISI (PWA) - Percorsi A, B e C
    Nelle sessioni "Percorsi" ogni giocatore della pulsantiera ha i propri
@@ -153,6 +153,7 @@ function percGuard(name){
 function renderSelettorePercorsi(){
   const g = cur();
   $('#psNum').textContent = g.dati.numero;
+  $('#psNum').style.cssText = stileMaglia(COLORI_SESSO[g.dati.sesso]);
   $('#psSquadra').textContent = g.dati.squadra;
   $('#psNome').textContent = [g.dati.nome, g.dati.sesso].filter(Boolean).join(' · ');
   $('#percList').innerHTML = ['A','B','C'].map(k => {

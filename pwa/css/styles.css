@@ -1,4 +1,4 @@
-/* styles.css by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.3 - 2026-11-14 19-13-26 */
+/* styles.css by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.4 - 2026-11-14 20-32-24 */
 /* =====================================================================
    Classificazione Baskin EISI (PWA) - stili
    Font: Arial; Arial Narrow per le intestazioni.
@@ -503,3 +503,18 @@ body:not([data-tipo="percorsi"]) .only-percorsi{ display: none !important; }
 .ps-row > span:nth-child(2){ flex: 1; }
 .perc-badge.sm{ width: 30px; height: 30px; font-size: 18px; border-radius: 8px; }
 .color-row input.swatch.custom{ width: 38px; height: 38px; min-height: 0; padding: 0; flex: none; }
+
+/* v26.3.1 - numero consigliato di giocatori, pulsantiera compatta */
+.pl-add.oltre{ border-style: dotted; opacity: .75; }
+.pl-add small{ display: block; }
+.pl-add{ flex-direction: column; gap: 0; padding: 8px; }
+.players.compact{ gap: 6px; }
+.players.compact .pl-btn{ padding: 8px 12px; }
+.players.compact .pl-num{ min-width: 44px; height: 44px; font-size: 22px; }
+.players.compact .pl-act{ padding: 0 12px 8px; }
+.players.compact .pl-act:not(:has(.btn-pri)):not(:has(.pl-printed)) .danger{ min-height: 30px; padding: 3px 8px; font-size: 13px; }
+.players.compact .pl{ display: flex; align-items: center; }
+.players.compact .pl-btn{ flex: 1; min-width: 0; }
+.players.compact .pl-act{ padding: 0 10px 0 0; flex: none; }
+.players.compact .pl-act .btn{ min-height: 34px; padding: 4px 10px; font-size: 13px; }
+.players.compact .pl-printed{ display: none; }

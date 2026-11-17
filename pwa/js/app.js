@@ -1,4 +1,4 @@
-/* app.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.3 - 2026-11-14 19-13-26 */
+/* app.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.4 - 2026-11-14 20-32-24 */
 /* =====================================================================
    Classificazione Baskin EISI (PWA) - logica applicativa
    Autore: Daniele Lolli (UncleDan)
@@ -7,7 +7,9 @@
      Home → Nuova sessione: Griglia oppure Percorsi
           → Identificazione del giocatore (squadra e n° obbligatori;
             colore della maglia per la griglia, sesso per i percorsi)
-          → "Aggiungere un altro giocatore?" fino al No o a 4 giocatori
+          → "Aggiungere un altro giocatore?" fino al No o al numero consigliato
+            (4 per la griglia, 20 per i percorsi; oltre si aggiunge dalla
+            pulsantiera, con richiesta di conferma)
           → Pulsantiera giocatori (pulsanti nel colore della maglia)
           → Griglia: menu abilità → abilità → Conferma → ... → Conferma finale
             Percorsi: scelta percorso → menu prove → prova → Conferma → ...
@@ -15,9 +17,12 @@
    ===================================================================== */
 'use strict';
 
-const APP_VERSION = '26.3';
+const APP_VERSION = '26.4';
 const APP_NAME = 'Classificazione Baskin EISI (PWA)';
-const MAX_GIOCATORI = 4;
+/* numero di giocatori consigliato per sessione: oltre non si propone più
+   l'aggiunta automatica, ma si può aggiungere dalla pulsantiera confermando */
+const SOGLIA_GIOCATORI = { griglia: 4, percorsi: 20 };
+const soglia = () => SOGLIA_GIOCATORI[(S && S.tipo) || 'griglia'];
 const KEY_SESS = 'classificazione-baskin-eisi-sessione-v2';
 const KEY_ARCH = 'classificazione-baskin-eisi-archivio-v1';
 
@@ -45,6 +50,8 @@ function luminance(hex){
   const lin = x => (x <= 0.03928) ? x/12.92 : Math.pow((x+0.055)/1.055, 2.4);
   return 0.2126*lin(r) + 0.7152*lin(g) + 0.0722*lin(b);
 }
+/* colori dei pulsanti nelle sessioni Percorsi, secondo il sesso */
+const COLORI_SESSO = { M: '#3f63e0', F: '#d6248f' };   // bluette, fucsia
 /* stile del "numero" del giocatore nel colore della maglia */
 function stileMaglia(col){
   if(!col) return '';
@@ -171,7 +178,7 @@ function renderHome(){
     const c = S.tipo === 'griglia' ? S.giocatori.filter(g => g.stato === 'confermata').length
                                    : S.giocatori.reduce((s,g) => s + (g.percorsi||[]).filter(t => t.stato === 'confermata').length, 0);
     $('#tileSessS').textContent = `${n} giocator${n===1?'e':'i'} · ${c} ${S.tipo === 'griglia' ? 'confermat' + (c===1?'o':'i') : 'percors' + (c===1?'o':'i') + ' confermat' + (c===1?'o':'i')}${S.gara ? ' · ' + S.gara : ''}`;
-  } else $('#tileSessS').textContent = `Griglia in partita o percorsi, fino a ${MAX_GIOCATORI} giocatori`;
+  } else $('#tileSessS').textContent = `Griglia in partita (fino a ${SOGLIA_GIOCATORI.griglia} giocatori) o percorsi (fino a ${SOGLIA_GIOCATORI.percorsi})`;
   $('#tileNuovaSess').hidden = !attiva;
   const ds = daStampare();
   $('#homeDaStampare').hidden = !ds.length;
@@ -249,9 +256,10 @@ function renderSessione(){
       }
       if(confermati.length) printBtn = `<button class="btn sm ${stampata ? '' : 'btn-pri'}" type="button" data-print="${i}">&#128424; ${stampata ? 'Ristampa' : (nonStampati.length > 1 ? `Stampa ${nonStampati.length} schede` : 'Stampa scheda')}</button>`;
     }
-    const stile = isGriglia() ? stileMaglia(g.dati.colore) : '';
+    const colPl = isGriglia() ? g.dati.colore : COLORI_SESSO[g.dati.sesso];
+    const stile = stileMaglia(colPl);
     return `
-      <div class="pl ${conf ? 'conf' : ''}" data-idx="${i}" ${isGriglia() && g.dati.colore ? `style="border-color:${g.dati.colore}"` : ''}>
+      <div class="pl ${conf ? 'conf' : ''}" data-idx="${i}" ${colPl ? `style="border-color:${colPl}"` : ''}>
         <button class="pl-btn" type="button" data-open="${i}">
           <span class="pl-num" style="${stile}">${esc(g.dati.numero)}</span>
           <span class="pl-txt"><b>${esc(g.dati.nome || g.dati.squadra)}</b><small>${esc(g.dati.nome ? g.dati.squadra : '')}</small><small class="pl-st">${esc(stato)}</small></span>
@@ -264,12 +272,17 @@ function renderSessione(){
       </div>`;
   };
   let html = S.giocatori.map(card).join('');
-  if(S.giocatori.length < MAX_GIOCATORI){
-    html += `<button class="pl-add" type="button" id="btnAddGioc"><span>&#10010;</span> Aggiungi giocatore <small>(${S.giocatori.length}/${MAX_GIOCATORI})</small></button>`;
-  }
+  const n = S.giocatori.length, sg = soglia();
+  html += `<button class="pl-add ${n >= sg ? 'oltre' : ''}" type="button" id="btnAddGioc"><span>&#10010;</span> Aggiungi giocatore <small>(${n} ${n === 1 ? 'inserito' : 'inseriti'} · consigliati fino a ${sg})</small></button>`;
   $('#players').innerHTML = html;
+  $('#players').classList.toggle('compact', S.giocatori.length > 6);
   const ds = daStampare();
   $('#btnStampaTutti').hidden = ds.length < 2;
+}
+
+/* oltre il numero consigliato l'aggiunta resta possibile, previa conferma */
+function confermaOltreSoglia(){
+  return confirm(`La sessione ha già ${S.giocatori.length} giocatori: il numero consigliato per una sessione ${isGriglia() ? 'Griglia' : 'Percorsi'} è ${soglia()}. Sei sicuro di voler aggiungere un altro giocatore?`);
 }
 
 function apriGiocatore(i){
@@ -301,7 +314,7 @@ function setColore(c){
 function renderIdent(){
   const g = editIdx >= 0 ? S.giocatori[editIdx] : null;
   $('#appbarTitle').textContent = isGriglia() ? 'Giocatore · Griglia' : 'Giocatore · Percorsi';
-  $('#idTitle').textContent = g ? 'Dati del giocatore' : `Nuovo giocatore (${S.giocatori.length + 1}/${MAX_GIOCATORI})`;
+  $('#idTitle').textContent = g ? 'Dati del giocatore' : `Nuovo giocatore n. ${S.giocatori.length + 1}`;
   P_CAMPI.forEach(c => $('#p_' + c).value = g ? (g.dati[c] || '') : '');
   let col = g ? g.dati.colore : '';
   if(!g && S.giocatori.length){  // propone squadra e colore dell'ultimo giocatore
@@ -317,7 +330,7 @@ function renderIdent(){
 
 function confermaIdent(){
   const v = {}; P_CAMPI.forEach(c => v[c] = $('#p_' + c).value.trim());
-  if(isGriglia()){ v.colore = colScelto; delete v.sesso; } else { delete v.ruolo; }
+  if(isGriglia()) v.colore = colScelto; else delete v.ruolo;
   const err = [];
   if(!v.squadra) err.push('la squadra');
   if(!v.numero) err.push('il numero');
@@ -334,8 +347,8 @@ function confermaIdent(){
   }
   const g = nuovoGiocatore(); Object.assign(g.dati, v);
   S.giocatori.push(g); salvaSess(); popolaSuggerimenti();
-  if(S.giocatori.length >= MAX_GIOCATORI){
-    toast(`Inseriti ${MAX_GIOCATORI} giocatori (massimo per sessione)`);
+  if(S.giocatori.length >= soglia()){
+    toast(`Inseriti ${S.giocatori.length} giocatori: raggiunto il numero consigliato per la sessione`);
     vaiAiGiocatori();
     return;
   }
@@ -346,9 +359,9 @@ function confermaIdent(){
 function chiediAltroGiocatore(g){
   const n = S.giocatori.length;
   apriSheet('Giocatore inserito', [{ nome:'Altro', html: `
-    <p><span class="pl-num inline" style="${isGriglia() ? stileMaglia(g.dati.colore) : ''}">${esc(g.dati.numero)}</span>
+    <p><span class="pl-num inline" style="${stileMaglia(isGriglia() ? g.dati.colore : COLORI_SESSO[g.dati.sesso])}">${esc(g.dati.numero)}</span>
        <b>${esc(etichetta(g))}</b>${g.dati.nome ? ' — ' + esc(g.dati.nome) : ''}</p>
-    <p>Giocatori nella sessione: <b>${n}/${MAX_GIOCATORI}</b>. Vuoi aggiungere un altro giocatore?</p>
+    <p>Giocatori nella sessione: <b>${n}</b> (consigliati fino a ${soglia()}). Vuoi aggiungere un altro giocatore?</p>
     <div class="sheet-links two">
       <button class="btn" type="button" id="btnAltroNo">No, vai ai giocatori</button>
       <button class="btn btn-pri" type="button" id="btnAltroSi">&#10010; Sì, aggiungi</button>
@@ -692,7 +705,7 @@ function onArchivio(azione, id){
   if(azione === 'rivaluta'){
     if(S && S.tipo !== 'griglia'){ toast('C’è una sessione Percorsi in corso: chiudila per rivalutare con la griglia'); return; }
     if(!S){ S = nuovaSessione('griglia'); }
-    if(S.giocatori.length >= MAX_GIOCATORI){ toast(`La sessione ha già ${MAX_GIOCATORI} giocatori`); return; }
+    if(S.giocatori.length >= soglia() && !confermaOltreSoglia()) return;
     if(S.giocatori.some(x => chiaveGiocatore(x) === chiaveGiocatore(g))){ toast('Giocatore già presente nella sessione'); return; }
     const n = nuovoGiocatore();
     P_CAMPI.concat(['colore']).forEach(k => n.dati[k] = g.dati[k] || '');
@@ -767,7 +780,7 @@ function htmlScheda(g, logoB, logoE){
       <tr><th>Squadra di appartenenza</th><td>${esc(d.squadra)}</td><th>N° maglia</th><td class="c b">${esc(d.numero)}${d.colore ? ` <span class="ps-col" style="background:${esc(d.colore)}"></span>` : ''}</td></tr>
       <tr><th>Cognome e nome</th><td colspan="3">${esc(d.nome)}</td></tr>
       <tr><th>Data di nascita</th><td>${esc(fmtData(d.nascita))}</td><th>Ruolo attuale</th><td class="c b">${esc(d.ruolo)}</td></tr>
-      <tr><th>Sezione Territoriale</th><td colspan="3">${esc(d.sezione)}</td></tr>
+      <tr><th>Sezione Territoriale</th><td>${esc(d.sezione)}</td><th>Sesso</th><td class="c">${esc(d.sesso || '')}</td></tr>
       <tr><th>Data osservazione</th><td>${esc(fmtData(d.data))}</td><th>Valutatore</th><td>${esc(d.valutatore)}</td></tr>
       <tr><th>Gara/e osservata/e</th><td colspan="3">${esc(d.gara)}</td></tr>
     </table>
@@ -983,7 +996,10 @@ function init(){
       if(confirm(`Rimuovere ${etichetta(g)} dalla sessione?`)){ S.giocatori.splice(i, 1); salvaSess(); renderSessione(); }
       return;
     }
-    if(t.closest('#btnAddGioc')){ editIdx = -1; identOrigine = 'sessione'; go('giocatore'); return; }
+    if(t.closest('#btnAddGioc')){
+      if(S.giocatori.length >= soglia() && !confermaOltreSoglia()) return;
+      editIdx = -1; identOrigine = 'sessione'; go('giocatore'); return;
+    }
 
     // menu abilità
     const ab = t.closest('.ab-row[data-ab]');
