@@ -1,4 +1,4 @@
-/* app.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.1 - 2026-11-14 13-47-15 */
+/* app.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.2 - 2026-11-14 18-02-27 */
 /* =====================================================================
    Classificazione Baskin EISI (PWA) - logica applicativa
    Autore: Daniele Lolli (UncleDan)
@@ -11,7 +11,7 @@
    ===================================================================== */
 'use strict';
 
-const APP_VERSION = '26.1';
+const APP_VERSION = '26.2';
 const APP_NAME = 'Classificazione Baskin EISI (PWA)';
 const MAX_GIOCATORI = 4;
 const KEY_SESS = 'classificazione-baskin-eisi-sessione-v1';
@@ -82,7 +82,7 @@ const etichetta = g => `${g.dati.squadra || '?'} · n° ${g.dati.numero || '?'}`
 /* =====================================================================
    NAVIGAZIONE
    ===================================================================== */
-const SCREENS = ['home','sessione','giocatore','abilita','livello','malus','archivio','percorsi','documento','info'];
+const SCREENS = ['home','sessione','giocatore','abilita','livello','malus','archivio','percorsi','perc-atleta','perc-menu','perc-prova','documento','info'];
 const NEED_SESS = ['sessione','giocatore','abilita','livello','malus'];
 
 function show(name){
@@ -90,12 +90,15 @@ function show(name){
   if(NEED_SESS.includes(name) && !S) name = 'home';
   if(['abilita','livello','malus'].includes(name) && !cur()) name = 'sessione';
   if(name === 'livello' && !curAb) name = 'abilita';
+  if(name.startsWith('perc') && typeof percGuard === 'function') name = percGuard(name);
   document.body.dataset.screen = name;
   $$('.screen').forEach(s => s.classList.toggle('active', s.id === 'scr-' + name));
   const scr = $('#scr-' + name);
   $('#appbarTitle').textContent = scr ? scr.dataset.title : '';
   ({ home: renderHome, sessione: renderSessione, giocatore: renderIdent, abilita: renderMenuAbilita,
-     livello: renderLivello, malus: renderMalus, archivio: renderArchivio })[name]?.();
+     livello: renderLivello, malus: renderMalus, archivio: renderArchivio,
+     percorsi: () => renderSelettorePercorsi(), 'perc-atleta': () => renderPercAtleta(),
+     'perc-menu': () => renderPercMenu(), 'perc-prova': () => renderPercProva() })[name]?.();
 }
 function go(name){
   if(location.hash !== '#' + name) location.hash = name; else show(name);
@@ -498,7 +501,8 @@ const chiaveGiocatore = g => `${(g.dati.squadra||'').trim().toLowerCase()}#${Str
 function renderArchivio(){
   const a = archivio();
   const box = $('#archList');
-  if(!a.length){ box.innerHTML = '<div class="card"><p class="muted">Nessuna valutazione confermata.</p></div>'; return; }
+  if(typeof renderArchivioPercorsi === 'function') renderArchivioPercorsi();
+  if(!a.length){ box.innerHTML = '<div class="card"><p class="muted">Nessuna griglia confermata.</p></div>'; return; }
 
   const gruppi = {};
   a.forEach(g => { const r = calcola(g); if(r.completa) (gruppi[chiaveGiocatore(g)] = gruppi[chiaveGiocatore(g)] || []).push(r.finale); });
@@ -546,7 +550,7 @@ function onArchivio(azione, id){
 }
 
 function esportaArchivio(){
-  const blob = new Blob([JSON.stringify({app: APP_NAME, versione: APP_VERSION, esportato: new Date().toISOString(), valutazioni: archivio()}, null, 2)], {type:'application/json'});
+  const blob = new Blob([JSON.stringify({app: APP_NAME, versione: APP_VERSION, esportato: new Date().toISOString(), valutazioni: archivio(), percorsi: (typeof percArchivio === 'function' ? percArchivio() : [])}, null, 2)], {type:'application/json'});
   scarica(blob, `Archivio_Classificazione_Baskin_${stamp()}.json`);
 }
 function importaArchivio(file){
@@ -558,14 +562,15 @@ function importaArchivio(file){
       if(!Array.isArray(nuove)) throw new Error('formato');
       const a = archivio(); let n = 0;
       nuove.forEach(g => { if(g && g.id && g.livelli && g.dati && !a.some(x => x.id === g.id)){ a.push(g); n++; } });
-      salvaArchivio(a); renderArchivio(); popolaSuggerimenti(); toast(`Importate ${n} valutazioni`);
+      const np = (Array.isArray(j.percorsi) && typeof percImporta === 'function') ? percImporta(j.percorsi) : 0;
+      salvaArchivio(a); renderArchivio(); popolaSuggerimenti(); toast(`Importate ${n} griglie e ${np} percorsi`);
     }catch(_){ toast('File non valido'); }
   };
   fr.readAsText(file);
 }
 
 function popolaSuggerimenti(){
-  const tutti = archivio().concat(S ? S.giocatori : []);
+  const tutti = archivio().concat(S ? S.giocatori : []).concat(typeof percTutti === 'function' ? percTutti() : []);
   const uniq = k => [...new Set(tutti.map(g => g.dati[k]).filter(Boolean))];
   $('#dlSezioni').innerHTML = uniq('sezione').map(s => `<option value="${esc(s)}">`).join('');
   $('#dlSquadre').innerHTML = uniq('squadra').map(s => `<option value="${esc(s)}">`).join('');
@@ -769,6 +774,7 @@ function init(){
     if(helpB){ e.preventDefault(); onHelp(helpB.dataset.help); return; }
     if(t.closest('#btnSiConferma')){ eseguiConfermaFinale(); return; }
     if(t.closest('[data-close]')){ chiudiSheet(); return; }
+    if(typeof percClick === 'function' && percClick(t)) return;
 
     // pulsantiera giocatori
     const op = t.closest('[data-open]');

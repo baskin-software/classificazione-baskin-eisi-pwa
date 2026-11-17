@@ -51,8 +51,19 @@ Baskin (rev. 1 settembre 2025)*. Pensata per essere ospitata su **GitHub Pages**
 - **Archivio** delle valutazioni confermate, con **media matematica** delle
   valutazioni dello stesso giocatore (squadra + numero), nuova valutazione ed
   esportazione/importazione in JSON.
-- **Percorsi**: pulsante e schermata segnaposto; il selettore dei percorsi con
-  cronometro arriverà in una prossima versione.
+- **Percorsi A, B e C** (sistema di classificazione, Sfera Motoria e
+  Tecnica): selettore del percorso con schema e tabella, identificazione
+  dell'atleta (squadra e numero obbligatori; sesso obbligatorio per il
+  Percorso B), menu delle tre prove, per ogni prova **cronometro a 7 segmenti**
+  (ripreso dal Tabellone Baskin EISI; avvio/arresto anche toccando il display,
+  schermo sempre acceso durante la misura) o tempo inserito a mano, criteri
+  delle tabelle di valutazione con punteggio automatico e **Conferma**.
+  L'esito segue le tabelle "In sintesi": Percorso A → Ruolo 3, Ruolo 4 o
+  Percorso C; Percorso B → Ruolo 4, Ruolo 4 da monitorare o Ruolo 5;
+  Percorso C → verifica 3/4 (soglia 20") o 2/2R (soglia 40") su due prove su
+  tre. Dopo la conferma finale si attivano stampa/PDF ed export HTML della
+  scheda e il pulsante per il percorso successivo (A → B oppure A → C) con
+  i dati dell'atleta già compilati.
 
 ### Privacy
 
@@ -71,7 +82,10 @@ pwa/
   css/styles.css
   js/data.js              testi della griglia, forma estesa, legenda, malus
   js/logos.js             loghi SVG come data URI (per l'export HTML)
-  js/app.js               logica
+  js/app.js               logica (griglia, archivio, stampa)
+  js/seg.js               display a 7 segmenti (dal Tabellone)
+  js/percorsi-data.js     tabelle di valutazione dei percorsi
+  js/percorsi.js          percorsi A, B, C e cronometro
   icons/                  icone PWA e loghi vettoriali (logos/)
   img/doc/                figure del testo integrale
 ```

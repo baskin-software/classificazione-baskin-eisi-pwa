@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- index.html by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.1 - 2026-11-14 13-47-15 -->
+<!-- index.html by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.2 - 2026-11-14 18-02-27 -->
 <html lang="it">
 <head>
   <meta charset="UTF-8" />
@@ -48,10 +48,10 @@
         <span class="tile-ico">&#10010;</span><span class="tile-txt"><b>Nuova sessione</b><small>Chiude quella in corso e ne inizia un’altra</small></span>
       </button>
       <button class="tile" type="button" data-go="archivio">
-        <span class="tile-ico">&#128450;</span><span class="tile-txt"><b>Archivio valutazioni</b><small>Griglie confermate: stampa, media, export</small></span>
+        <span class="tile-ico">&#128450;</span><span class="tile-txt"><b>Archivio valutazioni</b><small>Griglie e percorsi confermati: stampa, media, export</small></span>
       </button>
       <button class="tile" type="button" data-go="percorsi">
-        <span class="tile-ico">&#9201;</span><span class="tile-txt"><b>Percorsi</b><small>Percorsi A, B e C (in preparazione)</small></span>
+        <span class="tile-ico">&#9201;</span><span class="tile-txt"><b>Percorsi</b><small>Percorsi A, B e C con cronometro</small></span>
       </button>
       <button class="tile" type="button" data-go="documento">
         <span class="tile-ico">&#128214;</span><span class="tile-txt"><b>Testo integrale</b><small>La classificazione dei ruoli nel Baskin</small></span>
@@ -159,26 +159,101 @@
   </section>
 
   <!-- ============ ARCHIVIO ============ -->
-  <section class="screen" id="scr-archivio" data-title="Archivio griglie">
+  <section class="screen" id="scr-archivio" data-title="Archivio">
     <p class="intro small">Qui finiscono le valutazioni confermate. Sono salvate solo su questo dispositivo, nella memoria del browser.</p>
+    <h3 class="arch-h">Griglie di valutazione in partita</h3>
     <div id="archList"></div>
+    <h3 class="arch-h">Percorsi</h3>
+    <div id="archPerc"></div>
     <div class="actions">
       <button class="btn" type="button" id="btnExport">&#11015; Esporta archivio (.json)</button>
       <label class="btn">&#11014; Importa archivio<input type="file" id="fileImport" accept=".json,application/json" hidden /></label>
     </div>
   </section>
 
-  <!-- ============ PERCORSI (segnaposto) ============ -->
+  <!-- ============ PERCORSI: SELETTORE ============ -->
   <section class="screen" id="scr-percorsi" data-title="Percorsi">
-    <div class="card placeholder">
-      <p class="ph-ico">&#9201;</p>
-      <h2>Percorsi A, B e C</h2>
-      <p>Qui arriverà il selettore del percorso con cronometro e calcolo dei punteggi delle tre prove.</p>
-      <p class="small">Nel frattempo puoi consultare le tabelle e gli schemi dei percorsi nel testo integrale.</p>
-      <div class="actions">
-        <button class="btn" type="button" data-doc="sez-v">Sistema assegnazione ruoli 3, 4, 5</button>
-        <button class="btn" type="button" data-doc="sez-vi">Schemi dei percorsi</button>
+    <button class="tile tile-main" type="button" id="tilePercCorso" hidden>
+      <span class="tile-ico">&#9201;</span><span class="tile-txt"><b>Riprendi percorso</b><small id="tilePercCorsoS"></small></span>
+    </button>
+    <p class="intro">Scegli il percorso da far eseguire. Ogni giocatore esegue tre prove; il ruolo di partenza si ricava dalle tabelle dell’Allegato A.</p>
+    <div class="perc-list" id="percList"></div>
+    <div class="card small muted">I percorsi valutano la “Sfera Motoria” e la “Sfera Tecnica” e forniscono il ruolo di partenza; la griglia di valutazione delle abilità in partita (Sfera Tattica) conferma o modifica il ruolo assegnato.
+      <button class="help-link" type="button" data-doc="sez-v">Sistema assegnazione ruoli 3, 4, 5</button></div>
+  </section>
+
+  <!-- ============ PERCORSI: IDENTIFICAZIONE ATLETA ============ -->
+  <section class="screen" id="scr-perc-atleta" data-title="Percorso · atleta">
+    <form class="card" id="frmPercAtleta" autocomplete="off" onsubmit="return false">
+      <h2 id="paTitle"></h2>
+      <div class="c-variante" id="paVariante" hidden>
+        <span class="fld-l">Scopo della prova</span>
+        <label class="radio-card"><input type="radio" name="pa_var" value="34" /> <span><b>Verifica Ruolo 3 / Ruolo 4</b><small>dopo 14-15 punti nel Percorso A · soglia 20”</small></span></label>
+        <label class="radio-card"><input type="radio" name="pa_var" value="2R" /> <span><b>Verifica Ruolo 2 / Ruolo 2R</b><small>atleta in possesso di una leggera corsa · soglia 40”</small></span></label>
       </div>
+      <div class="row2 row-sq">
+        <label class="fld"><span>Squadra <b class="req">*</b></span><input id="pa_squadra" type="text" list="dlSquadre" /></label>
+        <label class="fld"><span>N° maglia <b class="req">*</b></span><input id="pa_numero" type="text" inputmode="numeric" maxlength="3" /></label>
+      </div>
+      <label class="fld"><span>Cognome e nome</span><input id="pa_nome" type="text" /></label>
+      <div class="row2">
+        <label class="fld"><span>Data di nascita</span><input id="pa_nascita" type="date" /></label>
+        <label class="fld"><span>Sesso <b class="req" id="paSessoReq">*</b></span>
+          <select id="pa_sesso"><option value="">—</option><option value="M">M</option><option value="F">F</option></select>
+        </label>
+      </div>
+      <label class="fld"><span>Sezione Territoriale</span><input id="pa_sezione" type="text" list="dlSezioni" /></label>
+      <div class="row2">
+        <label class="fld"><span>Data</span><input id="pa_data" type="date" /></label>
+        <label class="fld"><span>Valutatore</span><input id="pa_valutatore" type="text" /></label>
+      </div>
+      <p class="small muted"><b class="req">*</b> campi obbligatori</p>
+      <p class="err" id="paErr" hidden></p>
+    </form>
+    <div class="bottombar">
+      <button class="btn" type="button" id="btnPaAnnulla">Annulla</button>
+      <button class="btn btn-pri" type="button" id="btnPaConferma">Conferma</button>
+    </div>
+  </section>
+
+  <!-- ============ PERCORSI: MENU PROVE ============ -->
+  <section class="screen" id="scr-perc-menu" data-title="Percorso">
+    <div class="card pl-head">
+      <div class="pl-id"><span class="pl-num perc-badge" id="pmTipo"></span><div><b id="pmTitolo"></b><small id="pmAtleta"></small></div></div>
+      <button class="qbtn" type="button" id="pmHelp" aria-label="Aiuto sul percorso">?</button>
+    </div>
+    <p class="locked-msg" id="pmLocked" hidden>&#128274; Percorso confermato. Per modificarlo usa <b>Riapri percorso</b>.</p>
+    <div class="ab-menu" id="pmProve"></div>
+    <fieldset class="card result"><legend>Esito</legend><div id="pmEsito"></div></fieldset>
+    <div class="actions col">
+      <button class="btn btn-pri" type="button" id="btnPmConferma">&#10004; Conferma finale</button>
+      <button class="btn btn-pri" type="button" id="btnPmStampa">&#128424; Stampa scheda / PDF</button>
+      <button class="btn" type="button" id="btnPmHtml">&#11015; Scarica scheda HTML</button>
+      <button class="btn" type="button" id="btnPmSeguito" hidden></button>
+      <button class="btn" type="button" id="btnPmRiapri">&#128275; Riapri percorso</button>
+      <button class="btn" type="button" id="btnPmDati">Dati dell’atleta</button>
+      <button class="btn btn-ghost" type="button" id="btnPmChiudi">&#8592; Torna ai percorsi</button>
+    </div>
+  </section>
+
+  <!-- ============ PERCORSI: PROVA (cronometro + criteri) ============ -->
+  <section class="screen" id="scr-perc-prova" data-title="Prova">
+    <div class="sw card">
+      <div class="sw-display" id="swDisplay" role="timer" aria-live="off"></div>
+      <div class="sw-btns">
+        <button class="btn sw-go" type="button" id="swGo">&#9654; Avvia</button>
+        <button class="btn" type="button" id="swReset">Azzera</button>
+      </div>
+      <div class="sw-man">
+        <label>Tempo (s) <input id="swManual" type="number" inputmode="decimal" step="0.01" min="0" placeholder="es. 21.37" /></label>
+        <span class="sw-pts" id="swPts"></span>
+      </div>
+    </div>
+    <div id="ppCriteri"></div>
+    <div class="card pp-tot" id="ppTot"></div>
+    <div class="bottombar">
+      <button class="btn" type="button" id="btnPpAnnulla">Annulla</button>
+      <button class="btn btn-pri" type="button" id="btnPpConferma">Conferma prova</button>
     </div>
   </section>
 
@@ -665,6 +740,9 @@
 
 <script src="js/data.js"></script>
 <script src="js/logos.js"></script>
+<script src="js/seg.js"></script>
+<script src="js/percorsi-data.js"></script>
 <script src="js/app.js"></script>
+<script src="js/percorsi.js"></script>
 </body>
 </html>
