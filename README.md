@@ -96,11 +96,11 @@ pwa/
 
 Versionamento allineato al Tabellone Baskin EISI (PWA) e all'app Cast:
 `versione.sottoversione[.patch]`, con la versione maggiore pari all'anno a due
-cifre. La patch si indica solo quando c'è: `26.4`, poi `26.4.1` per una
-correzione, `26.5` per nuove funzioni, `27.0` per il primo rilascio dell'anno
-successivo. A ogni rilascio aggiornare insieme `APP_VERSION` in
+cifre. La patch si indica solo quando c'è: il primo rilascio è `26.0`, poi `26.0.1`
+per una correzione, `26.1` per nuove funzioni, `27.0` per il primo rilascio
+dell'anno successivo. A ogni rilascio aggiornare insieme `APP_VERSION` in
 `pwa/js/app.js` e `CACHE_NAME` in `pwa/service-worker.js`, con il tag git
-corrispondente (`v26.4`).
+corrispondente (`v26.0`).
 
 ## Licenza
 
