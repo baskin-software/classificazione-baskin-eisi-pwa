@@ -1,4 +1,4 @@
-/* app.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b4 - 2026-11-18 13-52-08 */
+/* app.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b5 - 2026-11-18 13-58-24 */
 /* =====================================================================
    Classificazione Baskin EISI (PWA) - logica applicativa
    Autore: Daniele Lolli (UncleDan)
@@ -17,7 +17,7 @@
    ===================================================================== */
 'use strict';
 
-const APP_VERSION = '26.0b4';
+const APP_VERSION = '26.0b5';
 const APP_NAME = 'Classificazione Baskin EISI (PWA)';
 /* numero di giocatori consigliato per sessione: oltre non si propone più
    l'aggiunta automatica, ma si può aggiungere dalla pulsantiera confermando */
@@ -143,7 +143,7 @@ const sigla = d => String(d.numero || '').trim() || iniziali(d.nome) || '?';
 const chi = d => d.numero ? `n° ${d.numero}` : (d.nome || '?');
 /* contenuto del riquadro del giocatore: numero o iniziali (più piccole se lunghe) */
 function htmlSigla(d){ const s = sigla(d); return `<span class="${s.length > 3 ? 'sig-l' : s.length > 2 ? 'sig-m' : ''}">${esc(s)}</span>`; }
-const etichetta = g => `${g.dati.squadra || '?'} · ${chi(g.dati)}`;
+const etichetta = g => [g.dati.squadra, chi(g.dati)].filter(Boolean).join(' · ') || '?';
 
 /* Elementi confermati e non ancora stampati della sessione:
    griglie (giocatori confermati) o percorsi confermati dei giocatori */
@@ -365,9 +365,12 @@ function confermaIdent(){
   const v = {}; P_CAMPI.forEach(c => v[c] = $('#p_' + c).value.trim());
   if(isGriglia()) v.colore = colScelto; else delete v.ruolo;
   const err = [];
-  if(!v.squadra) err.push('la squadra');
-  if(isGriglia() && !v.numero) err.push('il numero');
-  if(!isGriglia() && !v.numero && !v.nome) err.push('il numero di maglia oppure cognome e nome');
+  if(isGriglia()){
+    if(!v.squadra) err.push('la squadra');
+    if(!v.numero) err.push('il numero');
+  } else if(!v.nome && !(v.squadra && v.numero)){
+    err.push('cognome e nome, oppure squadra e n° maglia');
+  }
   const lc = x => String(x || '').trim().toLowerCase();
   const dup = S.giocatori.findIndex((g, i) => i !== editIdx && lc(g.dati.squadra) === lc(v.squadra) &&
     (v.numero ? String(g.dati.numero) === v.numero : !g.dati.numero && lc(g.dati.nome) === lc(v.nome)));
@@ -962,7 +965,7 @@ function confermatiSessione(){
 }
 
 function descrizioneElemento(x){
-  const d = x.item.dati, chi = `${d.squadra || '?'}${d.numero ? ' · n° ' + d.numero : ''}${d.nome ? ' · ' + d.nome : ''}`;
+  const d = x.item.dati, chi = [d.squadra, d.numero && 'n° ' + d.numero, d.nome].filter(Boolean).join(' · ') || '?';
   if(x.tipo === 'griglia'){ const r = calcola(x.item); return `Griglia — ${chi}: punteggio ${r.finale} → ruolo ${r.ruolo}`; }
   const e = esito(x.item);
   return `${PERCORSI[x.item.tipo].nome} — ${chi}: ${e.titolo}`;
@@ -1032,7 +1035,7 @@ async function eseguiInvioCTL(condividi){
   const nome = uno ? (x0.tipo === 'griglia' ? nomeFile(x0.item) : nomeFilePercorso(x0.item)) : `Classificazione_Baskin_${lista.length}_schede_${stamp()}`;
   const tipi = [...new Set(lista.map(x => x.tipo === 'griglia' ? 'Griglia di valutazione' : 'Percorsi'))].join(' e ');
   const d0 = { ...x0.item.dati, data: x0.item.dati.data || (S && S.data) || '', valutatore: x0.item.dati.valutatore || (S && S.valutatore) || '' };
-  const oggetto = `Classificazione Baskin – ${tipi} – ` + (uno ? `${d0.squadra}${d0.numero ? ' n° ' + d0.numero : ''}${d0.nome ? ' ' + d0.nome : ''}` : `${lista.length} valutazioni`) + (d0.data ? ` – ${fmtData(d0.data)}` : '');
+  const oggetto = `Classificazione Baskin – ${tipi} – ` + (uno ? [d0.squadra, d0.numero && 'n° ' + d0.numero, d0.nome].filter(Boolean).join(' ') : `${lista.length} valutazioni`) + (d0.data ? ` – ${fmtData(d0.data)}` : '');
   const testo = [
     `Alla ${ctl ? ctl.nome : 'Commissione Tecnica Locale'},`,
     '',

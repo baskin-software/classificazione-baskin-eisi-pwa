@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- index.html by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b4 - 2026-11-18 13-52-08 -->
+<!-- index.html by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b5 - 2026-11-18 13-58-24 -->
 <html lang="it">
 <head>
   <meta charset="UTF-8" />
@@ -104,7 +104,7 @@
     <form class="card" id="frmGiocatore" autocomplete="off" onsubmit="return false">
       <h2 id="idTitle">Nuovo giocatore</h2>
       <div class="row2 row-sq">
-        <label class="fld"><span>Squadra <b class="req">*</b></span><input id="p_squadra" type="text" list="dlSquadre" required /></label>
+        <label class="fld"><span>Squadra <b class="req only-griglia">*</b></span><input id="p_squadra" type="text" list="dlSquadre" /></label>
         <label class="fld"><span>N° maglia <b class="req only-griglia">*</b></span><input id="p_numero" type="text" inputmode="numeric" maxlength="3" /></label>
       </div>
       <div class="fld only-griglia" id="colFld">
@@ -125,7 +125,7 @@
       </div>
       <label class="fld"><span>Sezione Territoriale</span><input id="p_sezione" type="text" list="dlSezioni" /></label>
       <p class="small muted"><b class="req">*</b> campi obbligatori</p>
-      <p class="small muted only-percorsi">Nei percorsi il n° di maglia è facoltativo: senza numero serve cognome e nome, e sul pulsante del giocatore compaiono le iniziali.</p>
+      <p class="small muted only-percorsi">Nei percorsi basta cognome e nome (squadra e n° maglia sono facoltativi); in alternativa servono squadra e n° maglia. Senza numero, sul pulsante del giocatore compaiono le iniziali.</p>
       <p class="err" id="idErr" hidden></p>
     </form>
     <div class="bottombar">
@@ -302,9 +302,9 @@
 <p>Toccando la riga della sessione in cima al pannello giocatori si inseriscono <strong>data</strong>, <strong>valutatore</strong> e, per la griglia, la <strong>gara osservata</strong>.</p>
 <h2>👤 Inserimento dei giocatori</h2>
 <ul>
-<li><strong>Squadra</strong>: obbligatoria.</li>
-<li><strong>N° maglia</strong>: obbligatorio nella <strong>griglia</strong>; <strong>facoltativo nei percorsi</strong>. Nei percorsi, senza numero serve <strong>cognome e nome</strong>, e sul pulsante del giocatore compaiono le <strong>iniziali</strong> di ogni parola, in maiuscolo (es. <em>Rossi Mario</em> → <strong>RM</strong>).</li>
-<li><strong>Cognome e nome</strong>, <strong>data di nascita</strong>, <strong>sesso</strong>, <strong>Sezione Territoriale</strong>: facoltativi (il sesso serve per il Percorso B).</li>
+<li><strong>Griglia</strong>: <strong>squadra</strong> e <strong>n° maglia</strong> obbligatori.</li>
+<li><strong>Percorsi</strong>: basta <strong>cognome e nome</strong>; squadra e n° maglia sono facoltativi. In alternativa al nome servono <strong>squadra e n° maglia</strong>. Senza numero, sul pulsante del giocatore compaiono le <strong>iniziali</strong> di ogni parola, in maiuscolo (es. <em>Rossi Mario</em> → <strong>RM</strong>).</li>
+<li><strong>Data di nascita</strong>, <strong>sesso</strong>, <strong>Sezione Territoriale</strong> (e nella griglia anche <strong>cognome e nome</strong>): facoltativi; il sesso serve per il Percorso B.</li>
 <li>Solo nella griglia: <strong>colore della maglia</strong> (8 colori o uno personalizzato) e <strong>ruolo attuale</strong>.</li>
 <li>Dopo ogni inserimento l'app chiede se <strong>aggiungere un altro giocatore</strong>, finché rispondi <em>No</em> o raggiungi il numero consigliato. Oltre quel numero puoi ancora aggiungerne dal pulsante <strong>Aggiungi giocatore</strong>, con una conferma ogni volta.</li>
 </ul>

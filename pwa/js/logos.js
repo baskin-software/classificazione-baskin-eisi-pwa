@@ -1,4 +1,4 @@
-/* logos.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b4 - 2026-11-18 13-52-08 */
+/* logos.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b5 - 2026-11-18 13-58-24 */
 /* Loghi vettoriali (SVG originali, invariati) come data URI: usati per
    incorporare i loghi nella griglia esportata in HTML autonomo. */
 'use strict';

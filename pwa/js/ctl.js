@@ -1,4 +1,4 @@
-/* ctl.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b4 - 2026-11-18 13-48-26 */
+/* ctl.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b5 - 2026-11-18 13-58-24 */
 /* =====================================================================
    Classificazione Baskin EISI (PWA) - destinatari di «Invia alla CTL»
    Per aggiungere una Commissione Tecnica Locale basta una riga

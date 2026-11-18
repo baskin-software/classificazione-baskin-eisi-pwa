@@ -1,4 +1,4 @@
-/* percorsi.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b4 - 2026-11-18 13-52-08 */
+/* percorsi.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b5 - 2026-11-18 13-58-24 */
 /* =====================================================================
    Classificazione Baskin EISI (PWA) - Percorsi A, B e C
    Nelle sessioni "Percorsi" ogni giocatore della pulsantiera ha i propri
@@ -46,7 +46,7 @@ function fmtCrono(ms){
   const cs = Math.floor(ms / 10), m = Math.floor(cs / 6000), s = Math.floor(cs / 100) % 60, c = cs % 100;
   return `${m}:${String(s).padStart(2,'0')}.${String(c).padStart(2,'0')}`;
 }
-const etichettaAtleta = d => `${d.squadra || '?'}${d.numero ? ' · n° ' + d.numero : ''}${d.nome ? ' · ' + d.nome : ''}`;
+const etichettaAtleta = d => [d.squadra, d.numero && 'n° ' + d.numero, d.nome].filter(Boolean).join(' · ') || '?';
 
 /* =====================================================================
    PUNTEGGI E DECISIONI
@@ -154,8 +154,8 @@ function renderSelettorePercorsi(){
   const g = cur();
   $('#psNum').innerHTML = htmlSigla(g.dati);
   $('#psNum').style.cssText = stileMaglia(COLORI_SESSO[g.dati.sesso]);
-  $('#psSquadra').textContent = g.dati.squadra;
-  $('#psNome').textContent = [g.dati.nome, g.dati.sesso].filter(Boolean).join(' · ');
+  $('#psSquadra').textContent = g.dati.squadra || g.dati.nome;
+  $('#psNome').textContent = [g.dati.squadra ? g.dati.nome : '', g.dati.sesso].filter(Boolean).join(' · ');
   $('#percList').innerHTML = ['A','B','C'].map(k => {
     const P = PERCORSI[k];
     return `<div class="perc-card">
@@ -499,7 +499,7 @@ function renderArchivioPercorsi(){
     const e = esito(t), P = PERCORSI[t.tipo];
     return `<div class="card arch" data-pid="${t.id}">
       <div class="arch-main">
-        <div><b>${esc(P.nome)} · ${esc(t.dati.squadra)}${t.dati.numero ? ' · n° ' + esc(t.dati.numero) : ''}</b><small>${esc(t.dati.nome || '')}</small>
+        <div><b>${esc([P.nome, t.dati.squadra, t.dati.numero && 'n° ' + t.dati.numero].filter(Boolean).join(' · '))}</b><small>${esc(t.dati.nome || '')}</small>
           <small>${esc(fmtData(t.dati.data))}${t.dati.valutatore ? ' · ' + esc(t.dati.valutatore) : ''}</small></div>
         <div class="arch-score perc ${e.classe}"><b>${esc(e.titolo.replace('Ruolo ','R').replace(' da monitorare','*').replace('Percorso C','→C').replace('Caso non previsto','?'))}</b><small>esito</small></div>
       </div>

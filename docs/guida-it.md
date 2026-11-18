@@ -32,9 +32,9 @@ Toccando la riga della sessione in cima al pannello giocatori si inseriscono **d
 
 ## 👤 Inserimento dei giocatori
 
-- **Squadra**: obbligatoria.
-- **N° maglia**: obbligatorio nella **griglia**; **facoltativo nei percorsi**. Nei percorsi, senza numero serve **cognome e nome**, e sul pulsante del giocatore compaiono le **iniziali** di ogni parola, in maiuscolo (es. *Rossi Mario* → **RM**).
-- **Cognome e nome**, **data di nascita**, **sesso**, **Sezione Territoriale**: facoltativi (il sesso serve per il Percorso B).
+- **Griglia**: **squadra** e **n° maglia** obbligatori.
+- **Percorsi**: basta **cognome e nome**; squadra e n° maglia sono facoltativi. In alternativa al nome servono **squadra e n° maglia**. Senza numero, sul pulsante del giocatore compaiono le **iniziali** di ogni parola, in maiuscolo (es. *Rossi Mario* → **RM**).
+- **Data di nascita**, **sesso**, **Sezione Territoriale** (e nella griglia anche **cognome e nome**): facoltativi; il sesso serve per il Percorso B.
 - Solo nella griglia: **colore della maglia** (8 colori o uno personalizzato) e **ruolo attuale**.
 - Dopo ogni inserimento l'app chiede se **aggiungere un altro giocatore**, finché rispondi *No* o raggiungi il numero consigliato. Oltre quel numero puoi ancora aggiungerne dal pulsante **Aggiungi giocatore**, con una conferma ogni volta.
 
