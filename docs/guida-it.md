@@ -12,6 +12,10 @@ La stessa guida è integrata nell'app (**Guida all'uso** nella schermata inizial
 - Dopo la prima apertura l'app funziona **anche senza connessione**: serve la rete solo per inviare le valutazioni alla CTL, segnalare un problema o verificare gli aggiornamenti.
 - I dati restano **solo sul dispositivo**, nella memoria del browser.
 
+### App Android e iOS (in prova)
+
+Esiste anche una versione **app** per Android e iOS, con le stesse funzioni. Nell'app la **stampa** apre la stampa del telefono (stampante o *Salva come PDF*) e i file (HTML, CSV, archivio) e l'invio alla CTL passano dalla **condivisione** del telefono, da cui si salvano o si inviano con l'app di posta. Le versioni di prova sono nella pre-release *app-beta* del repository.
+
 ## 🏠 Schermata iniziale
 
 - **Nuova sessione** (o **Riprendi sessione** se ce n'è una in corso): avvia una sessione di Griglia o di Percorsi.

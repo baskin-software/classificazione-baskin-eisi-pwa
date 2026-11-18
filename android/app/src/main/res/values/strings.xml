@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Classificazione Baskin</string>
+    <string name="title_activity_main">Classificazione Baskin</string>
+    <string name="package_name">it.uncledan.classificazionebaskin</string>
+    <string name="custom_url_scheme">it.uncledan.classificazionebaskin</string>
+</resources>

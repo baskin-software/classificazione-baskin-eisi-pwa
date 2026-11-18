@@ -94,6 +94,7 @@ pwa/
   img/doc/                figure del testo integrale
 docs/guida-it.md          guida all'uso (copia integrata in index.html)
 tools/genera-guida.py     rigenera la guida integrata dal markdown
+  js/nativo.js            adattamenti per le app Android/iOS (Capacitor)
 .github/workflows/pages.yml  pubblicazione su GitHub Pages
 ```
 
@@ -131,6 +132,56 @@ I colori si scrivono come `#rrggbb` o per nome (rosso, blu, bianco, nero, giallo
 verde, azzurro, viola, arancione, grigio, rosa, granata…). L'elenco CTL
 **predefinito**, con cui parte l'app, è in `pwa/js/ctl.js` (`CTL_DESTINATARI`).
 
+## App Android e iOS (sperimentale)
+
+Dallo stesso repository si compilano anche le app native, con
+[Capacitor](https://capacitorjs.com): impacchettano la cartella `pwa/` così com'è,
+con le stesse funzioni della PWA. Nell'app nativa `pwa/js/nativo.js` sostituisce
+le parti che nella WebView non funzionano:
+
+- **stampa** con il plugin locale `Stampa` (Android `PrintManager`, iOS
+  `UIPrintInteractionController`): stampante o «Salva come PDF»;
+- **file** (HTML, CSV, archivio) e **invio alla CTL**: salvati nella cache e passati
+  alla condivisione di sistema (plugin `@capacitor/filesystem` e `@capacitor/share`);
+- niente service worker né «Installa app»; «Verifica aggiornamenti» apre le release.
+
+| Piattaforma | Workflow | Risultato |
+|---|---|---|
+| Android | `.github/workflows/app-android.yml` (Linux) | APK debug sempre; APK release firmato se ci sono i secret `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD` |
+| iOS | `.github/workflows/app-ios.yml` (macOS) | `.ipa` **non firmato** e build per Simulatore |
+
+A ogni push sul ramo `beta` gli APK e l'`.ipa` finiscono nella pre-release
+**app-beta** (sempre la più recente); con un tag `v*` nella release del tag; ogni
+esecuzione li lascia anche tra gli artifact.
+
+- **Android**: dal telefono, apri la pre-release *app-beta* e scarica l'APK
+  (consenti l'installazione da questa fonte).
+- **iOS**: senza account Apple Developer l'app non si può firmare in automatico.
+  L'`.ipa` non firmato si installa con un tool di sideload (Sideloadly, AltStore)
+  e un Apple ID gratuito, con durata di 7 giorni. Per TestFlight/App Store servono
+  l'account Apple Developer, il certificato e il profilo di provisioning.
+
+Struttura e comandi (servono Node.js 22, per Android JDK 21 e Android Studio, per
+iOS un Mac con Xcode):
+
+```
+package.json, capacitor.config.json   configurazione Capacitor (webDir: pwa)
+android/                              progetto Android (StampaPlugin.java)
+ios/                                  progetto iOS (StampaPlugin.swift)
+assets/                               sorgenti di icone e splash
+tools/versione-app.mjs                versione app = APP_VERSION
+```
+
+```bash
+npm ci
+npm run android     # versione + cap sync + apre Android Studio
+npm run ios         # versione + cap sync + apre Xcode
+```
+
+La versione delle app segue `APP_VERSION`: `26.0b10` diventa versionName `26.0b10`
+e versionCode `2600010` (la `26.0` finale `2600099`, la `26.0.1` `2600199`); su iOS
+`26.0.0`, build `2600010`. Identificativo: `it.uncledan.classificazionebaskin`.
+
 ## Versioni
 
 Versionamento allineato al Tabellone Baskin EISI (PWA) e all'app Cast:
@@ -146,7 +197,7 @@ rilascia `26.0` senza altre modifiche funzionali. Lo stesso vale per i rilasci
 successivi (`26.1b1` → `26.1`).
 
 A ogni build aggiornare insieme `APP_VERSION` in `pwa/js/app.js` e `CACHE_NAME`
-in `pwa/service-worker.js`, con il tag git corrispondente (`v26.0b9`, poi `v26.0`).
+in `pwa/service-worker.js`, con il tag git corrispondente (`v26.0b10`, poi `v26.0`).
 
 ## Pubblicazione su GitHub Pages
 

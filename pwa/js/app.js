@@ -1,4 +1,4 @@
-/* app.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b9 - 2026-11-18 17-15-43 */
+/* app.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b10 - 2026-11-18 18-51-49 */
 /* =====================================================================
    Classificazione Baskin EISI (PWA) - logica applicativa
    Autore: Daniele Lolli (UncleDan)
@@ -17,7 +17,10 @@
    ===================================================================== */
 'use strict';
 
-const APP_VERSION = '26.0b9';
+const APP_VERSION = '26.0b10';
+/* app nativa Android/iOS (Capacitor): stesso codice della PWA, vedi js/nativo.js */
+const NATIVO = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
+const PIATTAFORMA = NATIVO ? window.Capacitor.getPlatform() : 'web';
 const APP_NAME = 'Classificazione Baskin EISI (PWA)';
 /* numero di giocatori consigliato per sessione: oltre non si propone più
    l'aggiunta automatica, ma si può aggiungere dalla pulsantiera confermando */
@@ -1120,13 +1123,17 @@ function toast(msg){
 }
 
 const REPO_ISSUES = 'https://github.com/baskin-software/classificazione-baskin-eisi-pwa/issues/new';
+/* nell'app nativa i link esterni vanno al browser di sistema (Capacitor li intercetta) */
+function apriEsterno(url){ if(NATIVO) location.href = url; else window.open(url, '_blank', 'noopener'); }
+const REPO_RELEASES = 'https://github.com/baskin-software/classificazione-baskin-eisi-pwa/releases';
+
 function segnalaProblema(){
   if(navigator.onLine === false){ toast('Sei offline: riprova quando sei connesso'); return; }
-  const standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) ? 'app installata' : 'browser';
+  const standalone = NATIVO ? 'app nativa ' + PIATTAFORMA : (window.matchMedia && matchMedia('(display-mode: standalone)').matches) ? 'app installata' : 'browser';
   const body = '**Cosa è successo / cosa si vorrebbe**\n\n\n\n**Passi per riprodurre**\n1. \n\n---\nVersione app: ' + APP_VERSION +
     '\nModalità: ' + standalone + '\nBrowser: ' + navigator.userAgent + '\n';
   const url = REPO_ISSUES + '?title=' + encodeURIComponent('[' + APP_VERSION + '] ') + '&body=' + encodeURIComponent(body);
-  window.open(url, '_blank', 'noopener');
+  apriEsterno(url);
 }
 
 /* =====================================================================
@@ -1141,7 +1148,7 @@ const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.
 const isAndroid = () => /android/i.test(navigator.userAgent);
 /* il pulsante c'è su ogni dispositivo finché l'app non è installata */
 function aggiornaInstalla(){
-  const vedi = !installata() && !appenaInstallata;
+  const vedi = !installata() && !appenaInstallata && !NATIVO;
   if($('#homeInstalla')) $('#homeInstalla').hidden = !vedi;
   if($('#btnInfoInstalla')) $('#btnInfoInstalla').hidden = !vedi;
 }
@@ -1173,6 +1180,11 @@ window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); prompt
 window.addEventListener('appinstalled', () => { promptInstall = null; appenaInstallata = true; aggiornaInstalla(); toast('App installata'); });
 
 async function verificaAggiornamenti(){
+  if(NATIVO){   // l'app nativa si aggiorna installando la nuova versione
+    toast(`Versione ${APP_VERSION}: le nuove versioni dell’app sono nelle release del progetto`);
+    setTimeout(() => apriEsterno(REPO_RELEASES), 800);
+    return;
+  }
   try{
     const r = await fetch('service-worker.js', {cache:'no-store'});
     const txt = await r.text();
@@ -1317,7 +1329,7 @@ function init(){
   });
 
   if('serviceWorker' in navigator && location.protocol.startsWith('http')){
-    navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+    if(!NATIVO) navigator.serviceWorker.register('service-worker.js').catch(()=>{});
   }
 }
 

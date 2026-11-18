@@ -1,0 +1,11 @@
+{
+  "appId": "it.uncledan.classificazionebaskin",
+  "appName": "Classificazione Baskin",
+  "webDir": "pwa",
+  "android": {
+    "allowMixedContent": false
+  },
+  "ios": {
+    "contentInset": "never"
+  }
+}
