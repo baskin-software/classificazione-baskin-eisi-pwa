@@ -1,4 +1,4 @@
-/* app.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b6 - 2026-11-18 14-09-46 */
+/* app.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b7 - 2026-11-18 16-32-16 */
 /* =====================================================================
    Classificazione Baskin EISI (PWA) - logica applicativa
    Autore: Daniele Lolli (UncleDan)
@@ -17,7 +17,7 @@
    ===================================================================== */
 'use strict';
 
-const APP_VERSION = '26.0b6';
+const APP_VERSION = '26.0b7';
 const APP_NAME = 'Classificazione Baskin EISI (PWA)';
 /* numero di giocatori consigliato per sessione: oltre non si propone più
    l'aggiunta automatica, ma si può aggiungere dalla pulsantiera confermando */
@@ -863,11 +863,11 @@ function htmlScheda(g, logoB, logoE){
 const CSS_SCHEDA = `
 .ps{font-family:Arial,Helvetica,sans-serif;color:#222;font-size:10.5pt;max-width:190mm;margin:0 auto}
 .ps h1,.ps h2,.ps th{font-family:"Arial Narrow",Arial,sans-serif}
-.ps-head{display:flex;align-items:center;gap:4mm;background:#2f3740;color:#fff;padding:2.5mm 4mm;border-radius:2mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.ps-head{display:flex;align-items:center;gap:4mm;background:#000;color:#fff;padding:2.5mm 4mm;border-radius:2mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .ps-lb{height:20mm;width:20mm}
 .ps-ht{flex:1;text-align:center;font-family:"Arial Narrow",Arial,sans-serif;font-size:11pt;font-weight:bold}
 .ps-ht span{font-weight:normal;font-size:9.5pt}
-.ps-le{background:#fff;border-radius:1.5mm;padding:1mm;display:inline-flex}
+.ps-le{display:inline-flex}   /* EISI trasparente su fondo nero, come nel Tabellone */
 .ps-le img{height:18mm;width:18mm}
 .ps h1{font-size:14pt;text-align:center;margin:5mm 0 3mm;color:#2f3740}
 .ps h2{font-size:12pt;color:#2f3740;margin:6mm 0 2mm}

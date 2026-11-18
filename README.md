@@ -124,7 +124,7 @@ rilascia `26.0` senza altre modifiche funzionali. Lo stesso vale per i rilasci
 successivi (`26.1b1` → `26.1`).
 
 A ogni build aggiornare insieme `APP_VERSION` in `pwa/js/app.js` e `CACHE_NAME`
-in `pwa/service-worker.js`, con il tag git corrispondente (`v26.0b6`, poi `v26.0`).
+in `pwa/service-worker.js`, con il tag git corrispondente (`v26.0b7`, poi `v26.0`).
 
 ## Pubblicazione su GitHub Pages
 
