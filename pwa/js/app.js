@@ -1,4 +1,4 @@
-/* app.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b2 - 2026-11-17 19-24-25 */
+/* app.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b3 - 2026-11-17 21-21-34 */
 /* =====================================================================
    Classificazione Baskin EISI (PWA) - logica applicativa
    Autore: Daniele Lolli (UncleDan)
@@ -17,7 +17,7 @@
    ===================================================================== */
 'use strict';
 
-const APP_VERSION = '26.0b2';
+const APP_VERSION = '26.0b3';
 const APP_NAME = 'Classificazione Baskin EISI (PWA)';
 /* numero di giocatori consigliato per sessione: oltre non si propone più
    l'aggiunta automatica, ma si può aggiungere dalla pulsantiera confermando */
@@ -95,6 +95,26 @@ const cur = () => (S && S.giocatori[curIdx]) || null;
 const isGriglia = () => !!S && S.tipo === 'griglia';
 function salvaSess(){ if(S) store.set(KEY_SESS, S); else store.del(KEY_SESS); }
 
+/* Descrizione dei malus selezionabili per il punteggio (anche parziale) */
+function statoMalusTesto(r){
+  if(r.completa) return r.hApplicabile
+    ? `Punteggio ${r.base} (tra 5 e 20): si applica solo il Malus H.`
+    : `Punteggio ${r.base} (tra 21 e 25): si applica solo il Malus A.A.I.I.`;
+  const range = `Punteggio raggiungibile ${r.minimo}–${r.massimo} (${r.fatti}/5 abilità valutate)`;
+  if(r.hPossibile && r.aPossibile) return `${range}: entrambi i malus sono ancora possibili; quello non pertinente si disattiva man mano che valuti le abilità.`;
+  return r.hPossibile ? `${range}: è possibile solo il Malus H.` : `${range}: è possibile solo il Malus A.A.I.I.`;
+}
+
+/* Dopo un cambio di livello: toglie i malus diventati impossibili e
+   richiede una nuova verifica se ne diventa possibile uno nuovo. */
+function allineaMalus(g, prima){
+  const r = calcola(g); const tolti = [];
+  if(!r.hPossibile && g.malusH){ g.malusH = false; tolti.push('Malus H'); }
+  if(!r.aPossibile && MALUS_AAII.some(m => g.malusA[m.id])){ MALUS_AAII.forEach(m => g.malusA[m.id] = false); tolti.push('Malus A.A.I.I.'); }
+  if((r.hPossibile && !prima.hPossibile) || (r.aPossibile && !prima.aPossibile)) g.malusVisto = false;
+  if(tolti.length) toast(`${tolti.join(' e ')} non più applicabile: rimosso`);
+}
+
 function calcola(g){
   const vals = ABILITA.map(a => g.livelli[a.id]).filter(v => v != null);
   const fatti = vals.length;
@@ -103,12 +123,18 @@ function calcola(g){
   const base = completa ? somma : null;
   const hApplicabile = completa && base >= 5 && base <= 20;
   const aApplicabile = completa && base >= 21 && base <= 25;
+  /* Punteggio ancora raggiungibile con le abilità mancanti (min 1, max 5 ciascuna):
+     un malus resta selezionabile finché il suo intervallo è raggiungibile. */
+  const mancanti = ABILITA.length - fatti;
+  const minimo = somma + mancanti, massimo = somma + mancanti * 5;
+  const hPossibile = minimo <= 20;
+  const aPossibile = massimo >= 21;
   let malus = 0;
   if(hApplicabile && g.malusH) malus += MALUS_H.punti;
   if(aApplicabile) MALUS_AAII.forEach(m => { if(g.malusA[m.id]) malus += m.punti; });
   const finale = completa ? base - malus : null;
   const ruolo = ruoloDaPunteggio(finale);
-  return { fatti, somma, completa, base, hApplicabile, aApplicabile, malus, finale, ruolo };
+  return { fatti, somma, completa, base, minimo, massimo, hPossibile, aPossibile, hApplicabile, aApplicabile, malus, finale, ruolo };
 }
 
 const etichetta = g => `${g.dati.squadra || '?'} · n° ${g.dati.numero || '?'}`;
@@ -400,13 +426,16 @@ function renderMenuAbilita(){
   }).join('');
 
   let mStato, mVal = '–';
-  if(!r.completa) mStato = 'disponibile dopo le 5 abilità';
-  else {
+  if(!r.completa){
+    const poss = [r.hPossibile && 'H', r.aPossibile && 'A.A.I.I.'].filter(Boolean).join(' o ');
+    const sel = (r.hPossibile && g.malusH) || (r.aPossibile && MALUS_AAII.some(m => g.malusA[m.id]));
+    mStato = `possibile: ${poss}${sel ? ' · selezionato' : ''} (definitivo dopo le 5 abilità)`;
+  } else {
     const quale = r.hApplicabile ? 'Malus H' : 'Malus A.A.I.I.';
     mStato = r.malus ? `${quale} applicato` : `${quale}: nessuno${g.malusVisto ? '' : ' (da verificare)'}`;
     mVal = r.malus ? '-' + r.malus : '0';
   }
-  const rigaMalus = `<button class="ab-row malus ${r.completa && g.malusVisto ? 'set' : ''}" type="button" id="abMalus" ${(!r.completa || conf) ? 'disabled' : ''}>
+  const rigaMalus = `<button class="ab-row malus ${r.completa && g.malusVisto ? 'set' : ''}" type="button" id="abMalus" ${conf ? 'disabled' : ''}>
       <span class="abil-n">M</span><span class="ab-txt"><b>Malus</b><small>${esc(mStato)}</small></span>
       <span class="ab-lv ${r.completa ? 'on' : ''}">${mVal}</span><span class="chev">&#8250;</span></button>`;
 
@@ -458,13 +487,17 @@ function renderLivello(){
       <span class="lvl-n">${j+1}</span>
       <span class="lvl-t">${esc(t)}<small>${esc(PROFILI_LIVELLO[j+1])}</small></span>
     </button>`).join('');
+  const prova = { ...g, livelli: { ...g.livelli, [curAb]: pendingLv } };
+  $('#lvMalus').textContent = pendingLv == null ? '' : 'Malus · ' + statoMalusTesto(calcola(prova));
   $('#btnLvConferma').disabled = pendingLv == null;
 }
 
 function confermaLivello(){
   if(pendingLv == null) return;
   const g = cur();
+  const prima = calcola(g);
   g.livelli[curAb] = pendingLv;
+  allineaMalus(g, prima);
   if(g.stato !== 'confermata') g.stato = 'bozza';
   salvaSess();
   curAb = null; pendingLv = null;
@@ -482,21 +515,21 @@ function renderMalus(){
   if(!pendingMalus) pendingMalus = { h: g.malusH, a: clone(g.malusA), note: g.dati.note || '' };
   $('#appbarTitle').textContent = 'Malus · ' + etichetta(g);
   $('#malusAList').innerHTML = MALUS_AAII.map(m => `
-    <label class="chk"><input type="checkbox" data-malus="${m.id}" ${pendingMalus.a[m.id] ? 'checked' : ''} ${r.aApplicabile ? '' : 'disabled'} />
+    <label class="chk"><input type="checkbox" data-malus="${m.id}" ${pendingMalus.a[m.id] ? 'checked' : ''} ${r.aPossibile ? '' : 'disabled'} />
       <span><b>${esc(m.nome)}</b><small>${esc(m.testo)}</small></span><em>-${m.punti} ${m.punti===1?'punto':'punti'}</em></label>`).join('');
-  $('#m_h').checked = pendingMalus.h; $('#m_h').disabled = !r.hApplicabile;
-  $('#malusH').classList.toggle('na', !r.hApplicabile);
-  $('#malusA').classList.toggle('na', !r.aApplicabile);
-  $('#malusState').textContent = r.hApplicabile
-    ? `Punteggio ${r.base} (tra 5 e 20): si applica solo il Malus H.`
-    : `Punteggio ${r.base} (tra 21 e 25): si applica solo il Malus A.A.I.I.`;
+  $('#m_h').checked = r.hPossibile && pendingMalus.h; $('#m_h').disabled = !r.hPossibile;
+  $$('[data-malus]').forEach(c => { if(c.disabled) c.checked = false; });
+  $('#malusH').classList.toggle('na', !r.hPossibile);
+  $('#malusA').classList.toggle('na', !r.aPossibile);
+  $('#malusState').textContent = statoMalusTesto(r);
   $('#p_note').value = pendingMalus.note;
 }
 
 function confermaMalus(){
   const g = cur();
-  g.malusH = $('#m_h').checked;
-  $$('[data-malus]').forEach(c => g.malusA[c.dataset.malus] = c.checked);
+  const r = calcola(g);
+  g.malusH = r.hPossibile && $('#m_h').checked;
+  $$('[data-malus]').forEach(c => g.malusA[c.dataset.malus] = r.aPossibile && c.checked);
   g.dati.note = $('#p_note').value;
   g.malusVisto = true;
   salvaSess(); pendingMalus = null;
@@ -618,8 +651,7 @@ function aiutoAbilita(id){
 
 function aiutoMalus(){
   const g = cur(); const r = g ? calcola(g) : {completa:false};
-  const stato = !r.completa ? 'Il punteggio non è ancora completo.'
-    : r.hApplicabile ? `Con ${r.base} punti si applica solo il Malus H.` : `Con ${r.base} punti si applica solo il Malus A.A.I.I.`;
+  const stato = r.completa === false && r.fatti == null ? 'Nessun giocatore in valutazione.' : statoMalusTesto(r);
   const h = `
     <p class="callout">${esc(stato)}</p>
     <p><b>${esc(MALUS_H.nome)}</b> ${esc(MALUS_H.condizione)}:</p>
