@@ -1,4 +1,4 @@
-/* percorsi.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b3 - 2026-11-17 21-21-34 */
+/* percorsi.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b4 - 2026-11-18 13-52-08 */
 /* =====================================================================
    Classificazione Baskin EISI (PWA) - Percorsi A, B e C
    Nelle sessioni "Percorsi" ogni giocatore della pulsantiera ha i propri
@@ -46,7 +46,7 @@ function fmtCrono(ms){
   const cs = Math.floor(ms / 10), m = Math.floor(cs / 6000), s = Math.floor(cs / 100) % 60, c = cs % 100;
   return `${m}:${String(s).padStart(2,'0')}.${String(c).padStart(2,'0')}`;
 }
-const etichettaAtleta = d => `${d.squadra || '?'} · n° ${d.numero || '?'}${d.nome ? ' · ' + d.nome : ''}`;
+const etichettaAtleta = d => `${d.squadra || '?'}${d.numero ? ' · n° ' + d.numero : ''}${d.nome ? ' · ' + d.nome : ''}`;
 
 /* =====================================================================
    PUNTEGGI E DECISIONI
@@ -123,10 +123,10 @@ function esito(t){
     const sopra = tempi.length - sotto;
     if(sotto >= 2){
       Object.assign(out, { ruolo:V.sotto, classe:'r' + V.sotto.toLowerCase(), titolo:'Ruolo ' + V.sotto,
-        testo:`In ${sotto} prove su ${tempi.length} il tempo è inferiore a ${V.soglia}”: l’atleta è da considerarsi Ruolo ${V.sotto}.` });
+        testo:`In ${sotto} prove su ${tempi.length} il tempo è inferiore a ${V.soglia} secondi: l’atleta è da considerarsi Ruolo ${V.sotto}.` });
     } else if(sopra >= 2){
       Object.assign(out, { ruolo:V.sopra, classe:'r' + V.sopra.toLowerCase(), titolo:'Ruolo ' + V.sopra,
-        testo:`In ${sopra} prove su ${tempi.length} il tempo non è inferiore a ${V.soglia}”: l’atleta è da considerarsi Ruolo ${V.sopra}.` });
+        testo:`In ${sopra} prove su ${tempi.length} il tempo non è inferiore a ${V.soglia} secondi: l’atleta è da considerarsi Ruolo ${V.sopra}.` });
     }
     out.tempi = tempi;
     if(out.ruolo && !out.completo) out.testo += ' (Esito già determinato da due prove su tre.)';
@@ -152,7 +152,7 @@ function percGuard(name){
 
 function renderSelettorePercorsi(){
   const g = cur();
-  $('#psNum').textContent = g.dati.numero;
+  $('#psNum').innerHTML = htmlSigla(g.dati);
   $('#psNum').style.cssText = stileMaglia(COLORI_SESSO[g.dati.sesso]);
   $('#psSquadra').textContent = g.dati.squadra;
   $('#psNome').textContent = [g.dati.nome, g.dati.sesso].filter(Boolean).join(' · ');
@@ -190,8 +190,8 @@ function avviaPercorso(tipo, variante, dopo){
     apriSheet('Percorso C · scopo della prova', [{ nome:'Scopo', html: `
       <p>Per quale verifica si esegue il Percorso C?</p>
       <div class="sheet-links col">
-        <button class="btn btn-pri" type="button" data-var="34"><b>${esc(V['34'].nome)}</b>&nbsp;· soglia 20”</button>
-        <button class="btn" type="button" data-var="2R"><b>${esc(V['2R'].nome)}</b>&nbsp;· soglia 40”</button>
+        <button class="btn btn-pri" type="button" data-var="34"><b>${esc(V['34'].nome)}</b>&nbsp;· soglia 20 secondi</button>
+        <button class="btn" type="button" data-var="2R"><b>${esc(V['2R'].nome)}</b>&nbsp;· soglia 40 secondi</button>
       </div>
       <p class="small muted">${esc(V['34'].testo)}</p>` }]);
     $$('#sheetBody [data-var]').forEach(b => b.onclick = () => { chiudiSheet(); avviaPercorso('C', b.dataset.var, dopo); });
@@ -219,7 +219,7 @@ function avviaPercorso(tipo, variante, dopo){
 function renderPercMenu(){
   sincronizzaT();
   const P = PERCORSI[T.tipo], conf = T.stato === 'confermata', g = cur();
-  $('#appbarTitle').textContent = `${P.nome} · n° ${g.dati.numero}`;
+  $('#appbarTitle').textContent = `${P.nome} · ${chi(g.dati)}`;
   $('#pmTipo').textContent = T.tipo;
   $('#pmTitolo').textContent = T.tipo === 'C' ? `${P.nome} · ${PERCORSI.C.varianti[T.variante || '34'].nome}` : `${P.nome} · ${P.scopo}`;
   $('#pmAtleta').textContent = etichettaAtleta(T.dati) + (T.tipo === 'B' && T.dati.sesso ? ` · ${T.dati.sesso}` : '');
@@ -239,7 +239,7 @@ function renderPercMenu(){
   $('#pmProve').innerHTML = T.prove.map((pr, i) => {
     const pt = puntiProva(T, pr);
     const info = pr.confermata
-      ? `${fmtSec(pr.tempo)} s${T.tipo !== 'C' ? ` · ${pt.totale}/${P.max} punti` : ''}`
+      ? `${fmtSec(pr.tempo)} secondi${T.tipo !== 'C' ? ` · ${pt.totale}/${P.max} punti` : ''}`
       : (pr.tempo != null ? 'in corso' : 'da eseguire');
     const big = pr.confermata ? (T.tipo === 'C' ? fmtSec(pr.tempo) : pt.totale) : '–';
     return `<button class="ab-row ${pr.confermata ? 'set' : ''}" type="button" data-prova="${i}" ${conf ? 'disabled' : ''}>
@@ -262,6 +262,7 @@ function renderPercMenu(){
   $('#btnPmStampa').hidden = !conf;
   $('#btnPmStampa').innerHTML = T.stampata ? '&#128424; Ristampa scheda / PDF' : '&#128424; Stampa scheda / PDF';
   $('#btnPmHtml').hidden = !conf;
+  $('#btnPmMail').hidden = !conf;
   $('#btnPmRiapri').hidden = !conf;
   $('#btnPmCambia').hidden = conf;
   $('#btnPmDati').hidden = conf;
@@ -274,7 +275,7 @@ function confermaFinalePercorso(){
   const e = esito(T), P = PERCORSI[T.tipo];
   const righe = T.prove.map((pr, i) => {
     const pt = puntiProva(T, pr);
-    return `<tr><td>Prova ${i+1}</td><td class="c">${fmtSec(pr.tempo)} s</td>${T.tipo !== 'C' ? `<td class="c"><b>${pt.totale}</b></td>` : ''}</tr>`;
+    return `<tr><td>Prova ${i+1}</td><td class="c">${fmtSec(pr.tempo)} secondi</td>${T.tipo !== 'C' ? `<td class="c"><b>${pt.totale}</b></td>` : ''}</tr>`;
   }).join('');
   const html = `
     <p><b>${esc(P.nome)}</b> — ${esc(etichettaAtleta(T.dati))}</p>
@@ -335,7 +336,7 @@ function renderPercProva(){
   }).join('');
   if(T.tipo === 'C'){
     const V = PERCORSI.C.varianti[T.variante || '34'];
-    $('#ppCriteri').innerHTML = `<div class="card small">${esc(PERCORSI.C.descr)}<br/><b>Soglia: ${V.soglia}”</b> — ${esc(V.nome)}</div>`;
+    $('#ppCriteri').innerHTML = `<div class="card small">${esc(PERCORSI.C.descr)}<br/><b>Soglia: ${V.soglia} secondi</b> — ${esc(V.nome)}</div>`;
   }
   aggiornaCrono(); aggiornaTotProva();
 }
@@ -357,7 +358,7 @@ function aggiornaCrono(){
   if(ms != null && !SW.running){
     if(T.tipo === 'C'){
       const V = PERCORSI.C.varianti[T.variante || '34'];
-      pts = ms / 1000 < V.soglia ? `sotto ${V.soglia}” → Ruolo ${V.sotto}` : `non sotto ${V.soglia}” → Ruolo ${V.sopra}`;
+      pts = ms / 1000 < V.soglia ? `sotto ${V.soglia} secondi → Ruolo ${V.sotto}` : `non sotto ${V.soglia} secondi → Ruolo ${V.sopra}`;
     } else pts = `${puntiTempo(fascePer(T), ms / 1000)} punti tempo`;
   }
   $('#swPts').textContent = pts;
@@ -414,15 +415,15 @@ function htmlSchedaPercorso(t, logoB, logoE){
   let corpo;
   if(t.tipo === 'C'){
     const V = P.varianti[t.variante || '34'];
-    corpo = `<p><b>${esc(V.nome)}</b> — soglia ${V.soglia}”. ${esc(V.testo)}</p>
+    corpo = `<p><b>${esc(V.nome)}</b> — soglia ${V.soglia} secondi. ${esc(V.testo)}</p>
       <table class="ps-ab"><tr><th class="l">Prova</th><th>Tempo impiegato</th><th>Rispetto alla soglia</th></tr>
-      ${t.prove.map((pr,i) => `<tr><th class="l">${i+1}^ prova</th><td class="c b">${fmtSec(pr.tempo)} s</td><td class="c">${pr.tempo != null ? (pr.tempo/1000 < V.soglia ? `inferiore a ${V.soglia}”` : `non inferiore a ${V.soglia}”`) : ''}</td></tr>`).join('')}</table>`;
+      ${t.prove.map((pr,i) => `<tr><th class="l">${i+1}^ prova</th><td class="c b">${fmtSec(pr.tempo)} secondi</td><td class="c">${pr.tempo != null ? (pr.tempo/1000 < V.soglia ? `inferiore a ${V.soglia} secondi` : `non inferiore a ${V.soglia} secondi`) : ''}</td></tr>`).join('')}</table>`;
   } else {
     const righe = P.criteri.map((c, k) => {
       const celle = t.prove.map(pr => {
         const pt = puntiProva(t, pr).dett[c.id];
         let lab = '';
-        if(c.tipo === 'tempo') lab = `${fmtSec(pr.tempo)} s`;
+        if(c.tipo === 'tempo') lab = `${fmtSec(pr.tempo)} secondi`;
         else if(c.tipo === 'scelta'){ const o = c.opzioni.find(o => o.id === pr.crit[c.id]); lab = o ? o.breve : ''; }
         else { const v = pr.crit[c.id]; lab = Array.isArray(v) ? (v.length ? v.join('+') : 'Regolare') : ''; }
         return `<td class="c"><small>${esc(lab)}</small><br/><b>${pt ?? ''}</b></td>`;
@@ -498,13 +499,14 @@ function renderArchivioPercorsi(){
     const e = esito(t), P = PERCORSI[t.tipo];
     return `<div class="card arch" data-pid="${t.id}">
       <div class="arch-main">
-        <div><b>${esc(P.nome)} · ${esc(t.dati.squadra)} · n° ${esc(t.dati.numero)}</b><small>${esc(t.dati.nome || '')}</small>
+        <div><b>${esc(P.nome)} · ${esc(t.dati.squadra)}${t.dati.numero ? ' · n° ' + esc(t.dati.numero) : ''}</b><small>${esc(t.dati.nome || '')}</small>
           <small>${esc(fmtData(t.dati.data))}${t.dati.valutatore ? ' · ' + esc(t.dati.valutatore) : ''}</small></div>
         <div class="arch-score perc ${e.classe}"><b>${esc(e.titolo.replace('Ruolo ','R').replace(' da monitorare','*').replace('Percorso C','→C').replace('Caso non previsto','?'))}</b><small>esito</small></div>
       </div>
       <div class="arch-act">
         <button class="btn sm" type="button" data-parch="stampa">Stampa</button>
         <button class="btn sm" type="button" data-parch="html">HTML</button>
+        <button class="btn sm" type="button" data-parch="invia">Invia alla CTL</button>
         <button class="btn sm danger" type="button" data-parch="elimina">Elimina</button>
       </div></div>`;
   }).join('');
@@ -535,6 +537,7 @@ function percClick(t){
     if(!x) return true;
     if(b.dataset.parch === 'stampa') stampaPercorso(x);
     if(b.dataset.parch === 'html') esportaHtmlPercorso(x);
+    if(b.dataset.parch === 'invia') apriInvioCTL([{ tipo:'percorso', item:x }]);
     if(b.dataset.parch === 'elimina' && confirm(`Eliminare il ${PERCORSI[x.tipo].nome} di ${etichettaAtleta(x.dati)}?`)){
       salvaPercArchivio(a.filter(y => y.id !== id)); renderArchivioPercorsi();
     }
@@ -548,6 +551,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#btnPmConferma').onclick = confermaFinalePercorso;
   $('#btnPmStampa').onclick = () => stampaPercorso(T);
   $('#btnPmHtml').onclick = () => esportaHtmlPercorso(T);
+  $('#btnPmMail').onclick = () => apriInvioCTL([{ tipo:'percorso', item:T }]);
   $('#btnPmRiapri').onclick = () => {
     if(!confirm('Riaprire il percorso? La stampa resterà disattivata fino a una nuova conferma finale.')) return;
     T.stato = 'bozza'; T.confermata = null; T.stampata = false; salvaSess(); renderPercMenu();

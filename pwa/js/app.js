@@ -1,4 +1,4 @@
-/* app.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b3 - 2026-11-17 21-21-34 */
+/* app.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b4 - 2026-11-18 13-52-08 */
 /* =====================================================================
    Classificazione Baskin EISI (PWA) - logica applicativa
    Autore: Daniele Lolli (UncleDan)
@@ -17,7 +17,7 @@
    ===================================================================== */
 'use strict';
 
-const APP_VERSION = '26.0b3';
+const APP_VERSION = '26.0b4';
 const APP_NAME = 'Classificazione Baskin EISI (PWA)';
 /* numero di giocatori consigliato per sessione: oltre non si propone più
    l'aggiunta automatica, ma si può aggiungere dalla pulsantiera confermando */
@@ -137,7 +137,13 @@ function calcola(g){
   return { fatti, somma, completa, base, minimo, massimo, hPossibile, aPossibile, hApplicabile, aApplicabile, malus, finale, ruolo };
 }
 
-const etichetta = g => `${g.dati.squadra || '?'} · n° ${g.dati.numero || '?'}`;
+/* Nei percorsi il n° di maglia è facoltativo: senza numero si usa il nome */
+const iniziali = nome => String(nome || '').trim().split(/\s+/).map(p => (p.match(/\p{L}|\p{N}/u) || [''])[0]).join('').toUpperCase();
+const sigla = d => String(d.numero || '').trim() || iniziali(d.nome) || '?';
+const chi = d => d.numero ? `n° ${d.numero}` : (d.nome || '?');
+/* contenuto del riquadro del giocatore: numero o iniziali (più piccole se lunghe) */
+function htmlSigla(d){ const s = sigla(d); return `<span class="${s.length > 3 ? 'sig-l' : s.length > 2 ? 'sig-m' : ''}">${esc(s)}</span>`; }
+const etichetta = g => `${g.dati.squadra || '?'} · ${chi(g.dati)}`;
 
 /* Elementi confermati e non ancora stampati della sessione:
    griglie (giocatori confermati) o percorsi confermati dei giocatori */
@@ -152,7 +158,7 @@ function daStampare(){
 /* =====================================================================
    NAVIGAZIONE
    ===================================================================== */
-const SCREENS = ['home','nuova','sessione','giocatore','abilita','livello','malus','archivio','percorsi','perc-menu','perc-prova','documento','info'];
+const SCREENS = ['home','nuova','sessione','giocatore','abilita','livello','malus','archivio','percorsi','perc-menu','perc-prova','documento','guida','info'];
 const NEED_SESS = ['sessione','giocatore','abilita','livello','malus','percorsi','perc-menu','perc-prova'];
 
 function show(name){
@@ -287,7 +293,7 @@ function renderSessione(){
     return `
       <div class="pl ${conf ? 'conf' : ''}" data-idx="${i}" ${colPl ? `style="border-color:${colPl}"` : ''}>
         <button class="pl-btn" type="button" data-open="${i}">
-          <span class="pl-num" style="${stile}">${esc(g.dati.numero)}</span>
+          <span class="pl-num" style="${stile}">${htmlSigla(g.dati)}</span>
           <span class="pl-txt"><b>${esc(g.dati.nome || g.dati.squadra)}</b><small>${esc(g.dati.nome ? g.dati.squadra : '')}</small><small class="pl-st">${esc(stato)}</small></span>
           <span class="pl-score">${score}</span>
         </button>
@@ -304,6 +310,7 @@ function renderSessione(){
   $('#players').classList.toggle('compact', S.giocatori.length > 6);
   const ds = daStampare();
   $('#btnStampaTutti').hidden = ds.length < 2;
+  $('#btnInviaCTL').hidden = !confermatiSessione().length;
 }
 
 /* oltre il numero consigliato l'aggiunta resta possibile, previa conferma */
@@ -359,12 +366,14 @@ function confermaIdent(){
   if(isGriglia()) v.colore = colScelto; else delete v.ruolo;
   const err = [];
   if(!v.squadra) err.push('la squadra');
-  if(!v.numero) err.push('il numero');
-  const dup = S.giocatori.findIndex((g, i) => i !== editIdx &&
-    g.dati.squadra.toLowerCase() === v.squadra.toLowerCase() && String(g.dati.numero) === v.numero);
+  if(isGriglia() && !v.numero) err.push('il numero');
+  if(!isGriglia() && !v.numero && !v.nome) err.push('il numero di maglia oppure cognome e nome');
+  const lc = x => String(x || '').trim().toLowerCase();
+  const dup = S.giocatori.findIndex((g, i) => i !== editIdx && lc(g.dati.squadra) === lc(v.squadra) &&
+    (v.numero ? String(g.dati.numero) === v.numero : !g.dati.numero && lc(g.dati.nome) === lc(v.nome)));
   const e = $('#idErr');
   if(err.length){ e.textContent = 'Inserisci ' + err.join(' e ') + '.'; e.hidden = false; return; }
-  if(dup >= 0){ e.textContent = 'Questo giocatore (squadra e numero) è già nella sessione.'; e.hidden = false; return; }
+  if(dup >= 0){ e.textContent = `Questo giocatore (squadra e ${v.numero ? 'numero' : 'nome'}) è già nella sessione.`; e.hidden = false; return; }
   if(editIdx >= 0){
     const g = S.giocatori[editIdx];
     Object.assign(g.dati, v);
@@ -385,7 +394,7 @@ function confermaIdent(){
 function chiediAltroGiocatore(g){
   const n = S.giocatori.length;
   apriSheet('Giocatore inserito', [{ nome:'Altro', html: `
-    <p><span class="pl-num inline" style="${stileMaglia(isGriglia() ? g.dati.colore : COLORI_SESSO[g.dati.sesso])}">${esc(g.dati.numero)}</span>
+    <p><span class="pl-num inline" style="${stileMaglia(isGriglia() ? g.dati.colore : COLORI_SESSO[g.dati.sesso])}">${htmlSigla(g.dati)}</span>
        <b>${esc(etichetta(g))}</b>${g.dati.nome ? ' — ' + esc(g.dati.nome) : ''}</p>
     <p>Giocatori nella sessione: <b>${n}</b> (consigliati fino a ${soglia()}). Vuoi aggiungere un altro giocatore?</p>
     <div class="sheet-links two">
@@ -409,7 +418,7 @@ function annullaIdent(){
    ===================================================================== */
 function renderMenuAbilita(){
   const g = cur(), r = calcola(g), conf = g.stato === 'confermata';
-  $('#plNum').textContent = g.dati.numero;
+  $('#plNum').innerHTML = htmlSigla(g.dati);
   $('#plNum').style.cssText = stileMaglia(g.dati.colore);
   $('#plSquadra').textContent = g.dati.squadra;
   $('#plNome').textContent = [g.dati.nome, g.dati.ruolo ? 'ruolo attuale ' + g.dati.ruolo : ''].filter(Boolean).join(' · ');
@@ -446,6 +455,7 @@ function renderMenuAbilita(){
   $('#btnConfermaFinale').disabled = !r.completa;
   $('#btnStampa').hidden = !conf;
   $('#btnHtml').hidden = !conf;
+  $('#btnMail').hidden = !conf;
   $('#btnRiapri').hidden = !conf;
 }
 
@@ -695,7 +705,7 @@ function archiviaGiocatore(g){
   if(!salvaArchivio(a)) toast('Attenzione: archivio non disponibile su questo browser');
 }
 
-const chiaveGiocatore = g => `${(g.dati.squadra||'').trim().toLowerCase()}#${String(g.dati.numero||'').trim()}`;
+const chiaveGiocatore = g => `${(g.dati.squadra||'').trim().toLowerCase()}#${String(g.dati.numero||'').trim() || (g.dati.nome||'').trim().toLowerCase()}`;
 
 function renderArchivio(){
   const a = archivio();
@@ -724,6 +734,7 @@ function renderArchivio(){
         <div class="arch-act">
           <button class="btn sm" type="button" data-arch="stampa">Stampa</button>
           <button class="btn sm" type="button" data-arch="html">HTML</button>
+          <button class="btn sm" type="button" data-arch="invia">Invia alla CTL</button>
           <button class="btn sm" type="button" data-arch="rivaluta">Nuova valutazione</button>
           <button class="btn sm danger" type="button" data-arch="elimina">Elimina</button>
         </div></div>`;
@@ -734,6 +745,7 @@ function onArchivio(azione, id){
   const a = archivio(); const g = a.find(x => x.id === id); if(!g) return;
   if(azione === 'stampa') stampa(g);
   if(azione === 'html') esportaHtml(g);
+  if(azione === 'invia') apriInvioCTL([{ tipo:'griglia', item:g }]);
   if(azione === 'rivaluta'){
     if(S && S.tipo !== 'griglia'){ toast('C’è una sessione Percorsi in corso: chiudila per rivalutare con la griglia'); return; }
     if(!S){ S = nuovaSessione('griglia'); }
@@ -935,6 +947,127 @@ ${htmlScheda(g, LOGO_BASKIN, LOGO_EISI)}
   g.stampata = true; salvaSess();
 }
 
+/* =====================================================================
+   INVIO ALLA CTL (e-mail con la scheda HTML in allegato)
+   ===================================================================== */
+const KEY_CTL = 'classificazione-baskin-eisi-ctl';
+let INV = null;   // { lista:[{tipo,item}], sel:Set(id) }
+
+function confermatiSessione(){
+  if(!S) return [];
+  if(S.tipo === 'griglia') return S.giocatori.filter(g => g.stato === 'confermata').map(g => ({ tipo:'griglia', g, item:g }));
+  const out = [];
+  S.giocatori.forEach(g => (g.percorsi || []).forEach(t => { if(t.stato === 'confermata') out.push({ tipo:'percorso', g, item:t }); }));
+  return out;
+}
+
+function descrizioneElemento(x){
+  const d = x.item.dati, chi = `${d.squadra || '?'}${d.numero ? ' · n° ' + d.numero : ''}${d.nome ? ' · ' + d.nome : ''}`;
+  if(x.tipo === 'griglia'){ const r = calcola(x.item); return `Griglia — ${chi}: punteggio ${r.finale} → ruolo ${r.ruolo}`; }
+  const e = esito(x.item);
+  return `${PERCORSI[x.item.tipo].nome} — ${chi}: ${e.titolo}`;
+}
+
+function docHtml(lista, titolo){
+  return `<!DOCTYPE html>
+<html lang="it"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>${esc(titolo)}</title>
+<style>body{margin:0;padding:6mm;background:#fff}${CSS_SCHEDA}${typeof CSS_PERC_EXTRA !== 'undefined' ? CSS_PERC_EXTRA : ''}${CSS_MULTI}
+.bar{max-width:190mm;margin:0 auto 4mm;text-align:right}.bar button{font:inherit;padding:2mm 4mm;border:0;border-radius:2mm;background:#2f3740;color:#fff}
+@media print{.bar{display:none}body{padding:0}}</style></head>
+<body><div class="bar"><button onclick="window.print()">Stampa / Salva come PDF</button></div>
+${lista.map(x => htmlElemento(x, LOGO_BASKIN, LOGO_EISI)).join('\n')}
+</body></html>`;
+}
+
+/* lista: candidati {tipo,item}; preselezione: id da spuntare (default tutti) */
+function apriInvioCTL(lista, preselezione){
+  if(!lista.length){ toast('Nessuna valutazione confermata da inviare'); return; }
+  INV = { lista, sel: new Set(preselezione || lista.map(x => x.item.id)) };
+  const ultima = store.get(KEY_CTL, CTL_DESTINATARI[0] ? CTL_DESTINATARI[0].email : '');
+  const noto = CTL_DESTINATARI.some(c => c.email === ultima);
+  const fileOk = !!(navigator.canShare && window.File && navigator.canShare({ files: [new File(['x'], 'x.html', { type:'text/html' })] }));
+  const html = `
+    <p><b>Destinatario</b></p>
+    <div class="ctl-list">${CTL_DESTINATARI.map(c => `
+      <label class="chk"><input type="radio" name="ctl" value="${esc(c.email)}" ${c.email === ultima ? 'checked' : ''}/>
+        <span><b>${esc(c.nome)}</b><small>${esc(c.email)}</small></span></label>`).join('')}
+      <label class="chk"><input type="radio" name="ctl" value="" ${noto ? '' : 'checked'}/>
+        <span><b>Altro indirizzo</b><input type="email" id="ctlAltro" placeholder="nome@dominio.it" value="${noto ? '' : esc(ultima)}"/></span></label>
+    </div>
+    ${lista.length > 1 ? `<p><b>Valutazioni da inviare</b></p><div class="ctl-list">${lista.map(x => `
+      <label class="chk"><input type="checkbox" data-inv="${x.item.id}" ${INV.sel.has(x.item.id) ? 'checked' : ''}/>
+        <span>${esc(descrizioneElemento(x))}</span></label>`).join('')}</div>`
+      : `<p class="small">${esc(descrizioneElemento(lista[0]))}</p>`}
+    <div class="actions">
+      ${fileOk ? `<button class="btn btn-pri" type="button" id="btnInvCondividi">&#9993; Invia con allegato</button>` : ''}
+      <button class="btn ${fileOk ? '' : 'btn-pri'}" type="button" id="btnInvMail">&#11015; Scarica il file e scrivi la mail</button>
+    </div>
+    <p class="muted small">${fileOk
+      ? '«Invia con allegato» apre la condivisione del telefono: scegli l’app di posta; l’indirizzo della CTL viene copiato negli appunti e scritto in cima al messaggio, incollalo come destinatario se l’app non lo inserisce.'
+      : 'Il file HTML viene scaricato e si apre la mail già indirizzata: allega il file scaricato prima di inviarla.'}
+      Il file si apre con qualsiasi browser e si può stampare o salvare in PDF.</p>`;
+  apriSheet('Invia alla CTL', [{ nome:'Invio', html }]);
+  const body = $('#sheetBody');
+  body.onchange = e => {
+    const c = e.target.closest('[data-inv]');
+    if(c){ c.checked ? INV.sel.add(c.dataset.inv) : INV.sel.delete(c.dataset.inv); }
+    if(e.target.id === 'ctlAltro') $('input[name="ctl"][value=""]', body).checked = true;
+  };
+  $('#ctlAltro', body).onfocus = () => { $('input[name="ctl"][value=""]', body).checked = true; };
+  if($('#btnInvCondividi', body)) $('#btnInvCondividi', body).onclick = () => eseguiInvioCTL(true);
+  $('#btnInvMail', body).onclick = () => eseguiInvioCTL(false);
+}
+
+async function eseguiInvioCTL(condividi){
+  const body = $('#sheetBody');
+  const r = $('input[name="ctl"]:checked', body);
+  const email = (r && r.value) || $('#ctlAltro', body).value.trim();
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ toast('Scegli la CTL o scrivi un indirizzo valido'); return; }
+  const lista = INV.lista.filter(x => INV.sel.has(x.item.id));
+  if(!lista.length){ toast('Seleziona almeno una valutazione'); return; }
+  store.set(KEY_CTL, email);
+  const ctl = CTL_DESTINATARI.find(c => c.email === email);
+  const uno = lista.length === 1, x0 = lista[0];
+  const nome = uno ? (x0.tipo === 'griglia' ? nomeFile(x0.item) : nomeFilePercorso(x0.item)) : `Classificazione_Baskin_${lista.length}_schede_${stamp()}`;
+  const tipi = [...new Set(lista.map(x => x.tipo === 'griglia' ? 'Griglia di valutazione' : 'Percorsi'))].join(' e ');
+  const d0 = { ...x0.item.dati, data: x0.item.dati.data || (S && S.data) || '', valutatore: x0.item.dati.valutatore || (S && S.valutatore) || '' };
+  const oggetto = `Classificazione Baskin – ${tipi} – ` + (uno ? `${d0.squadra}${d0.numero ? ' n° ' + d0.numero : ''}${d0.nome ? ' ' + d0.nome : ''}` : `${lista.length} valutazioni`) + (d0.data ? ` – ${fmtData(d0.data)}` : '');
+  const testo = [
+    `Alla ${ctl ? ctl.nome : 'Commissione Tecnica Locale'},`,
+    '',
+    `invio ${uno ? 'la valutazione' : 'le seguenti ' + lista.length + ' valutazioni'} (${tipi}):`,
+    ...lista.map(x => '- ' + descrizioneElemento(x)),
+    '',
+    [d0.data && 'Data: ' + fmtData(d0.data), d0.valutatore && 'Valutatore: ' + d0.valutatore, S && S.gara && 'Gara: ' + S.gara].filter(Boolean).join(' · '),
+    '',
+    `In allegato il file ${nome}.html: si apre con qualsiasi browser e si può stampare o salvare in PDF.`,
+    `Compilato con ${APP_NAME} v${APP_VERSION}.`
+  ].join('\n');
+  const blob = new Blob([docHtml(lista, nome)], { type:'text/html' });
+  const segna = () => { lista.forEach(x => { x.item.stampata = true; x.item.inviata = { email, data: new Date().toISOString() }; }); salvaSess(); };
+
+  if(condividi){
+    const file = new File([blob], nome + '.html', { type:'text/html' });
+    try{ navigator.clipboard && navigator.clipboard.writeText(email).catch(() => {}); }catch(_){}
+    try{
+      await navigator.share({ files:[file], title: oggetto, text: `A: ${email}\nOggetto: ${oggetto}\n\n${testo}` });
+      segna(); chiudiSheet(); toast(`Inviato tramite condivisione (destinatario ${email})`); dopoInvio();
+    }catch(e){ if(e && e.name !== 'AbortError') toast('Condivisione non riuscita: usa «Scarica il file e scrivi la mail»'); }
+    return;
+  }
+  scarica(blob, nome + '.html');
+  segna(); chiudiSheet();
+  setTimeout(() => { location.href = `mailto:${email}?subject=${encodeURIComponent(oggetto)}&body=${encodeURIComponent(testo)}`; }, 400);
+  toast('File scaricato: allegalo alla mail');
+  dopoInvio();
+}
+function dopoInvio(){
+  const scr = document.body.dataset.screen;
+  if(scr === 'sessione') renderSessione(); else if(scr === 'abilita') renderMenuAbilita();
+  else if(scr === 'perc-menu') renderPercMenu();
+}
+
 function scarica(blob, nome){
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -1081,6 +1214,8 @@ function init(){
   $('#btnConfermaFinale').onclick = chiediConfermaFinale;
   $('#btnStampa').onclick = () => stampa(cur());
   $('#btnHtml').onclick = () => esportaHtml(cur());
+  $('#btnMail').onclick = () => { const g = cur(); apriInvioCTL([{ tipo:'griglia', item:g }]); };
+  $('#btnInviaCTL').onclick = () => apriInvioCTL(confermatiSessione());
   $('#btnRiapri').onclick = riapri;
   $('#btnTornaGioc').onclick = () => history.back();
 

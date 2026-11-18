@@ -1,4 +1,4 @@
-/* percorsi-data.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b3 - 2026-11-17 21-21-34 */
+/* percorsi-data.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b4 - 2026-11-18 13-52-08 */
 /* =====================================================================
    Classificazione Baskin EISI (PWA) - dati dei percorsi A, B e C
    Tabelle di valutazione e regole di decisione tratte da: Allegato A al
@@ -89,7 +89,7 @@ const PERCORSI = {
     criteri: [ { id:'tempo', nome:'Tempo impiegato', tipo:'tempo' } ],
     varianti: {
       '34': { nome:'Verifica Ruolo 3 / Ruolo 4', soglia:20,
-              testo:'Per chi ha totalizzato 14 o 15 punti nel Percorso A: con un riscontro cronometrico inferiore a 20” (tenendo conto delle due prove su tre) è Ruolo 4, altrimenti Ruolo 3.',
+              testo:'Per chi ha totalizzato 14 o 15 punti nel Percorso A: con un riscontro cronometrico inferiore a 20 secondi (tenendo conto delle due prove su tre) è Ruolo 4, altrimenti Ruolo 3.',
               sotto:'4', sopra:'3' },
       '2R': { nome:'Verifica Ruolo 2 / Ruolo 2R', soglia:40,
               testo:'Il Ruolo 2 non possiede la corsa/spostamento veloce: effettua il percorso C in un tempo superiore a 40 secondi. Con meno di 40 secondi l’atleta è Ruolo 2R.',

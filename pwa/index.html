@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- index.html by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b3 - 2026-11-17 21-21-34 -->
+<!-- index.html by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b4 - 2026-11-18 13-52-08 -->
 <html lang="it">
 <head>
   <meta charset="UTF-8" />
@@ -58,6 +58,9 @@
       <button class="tile" type="button" data-go="documento">
         <span class="tile-ico">&#128214;</span><span class="tile-txt"><b>Testo integrale</b><small>La classificazione dei ruoli nel Baskin</small></span>
       </button>
+      <button class="tile" type="button" data-go="guida">
+        <span class="tile-ico">&#128203;</span><span class="tile-txt"><b>Guida all’uso</b><small>Come compilare griglie e percorsi, stampare e inviare alla CTL</small></span>
+      </button>
       <button class="tile" type="button" data-go="info">
         <span class="tile-ico">&#9432;</span><span class="tile-txt"><b>Informazioni</b><small>Versione, aggiornamenti, privacy</small></span>
       </button>
@@ -91,6 +94,7 @@
     <div class="players" id="players"></div>
     <div class="actions">
       <button class="btn" type="button" id="btnStampaTutti" hidden>&#128424; Stampa tutti i non stampati</button>
+      <button class="btn" type="button" id="btnInviaCTL" hidden>&#9993; Invia alla CTL</button>
       <button class="btn btn-ghost" type="button" id="btnChiudiSess">&#10003; Chiudi sessione</button>
     </div>
   </section>
@@ -101,7 +105,7 @@
       <h2 id="idTitle">Nuovo giocatore</h2>
       <div class="row2 row-sq">
         <label class="fld"><span>Squadra <b class="req">*</b></span><input id="p_squadra" type="text" list="dlSquadre" required /></label>
-        <label class="fld"><span>N° maglia <b class="req">*</b></span><input id="p_numero" type="text" inputmode="numeric" maxlength="3" required /></label>
+        <label class="fld"><span>N° maglia <b class="req only-griglia">*</b></span><input id="p_numero" type="text" inputmode="numeric" maxlength="3" /></label>
       </div>
       <div class="fld only-griglia" id="colFld">
         <span>Colore della maglia</span>
@@ -121,6 +125,7 @@
       </div>
       <label class="fld"><span>Sezione Territoriale</span><input id="p_sezione" type="text" list="dlSezioni" /></label>
       <p class="small muted"><b class="req">*</b> campi obbligatori</p>
+      <p class="small muted only-percorsi">Nei percorsi il n° di maglia è facoltativo: senza numero serve cognome e nome, e sul pulsante del giocatore compaiono le iniziali.</p>
       <p class="err" id="idErr" hidden></p>
     </form>
     <div class="bottombar">
@@ -142,6 +147,7 @@
       <button class="btn btn-pri" type="button" id="btnConfermaFinale">&#10004; Conferma finale</button>
       <button class="btn btn-pri" type="button" id="btnStampa">&#128424; Stampa griglia / PDF</button>
       <button class="btn" type="button" id="btnHtml">&#11015; Scarica griglia HTML</button>
+      <button class="btn" type="button" id="btnMail">&#9993; Invia alla CTL</button>
       <button class="btn" type="button" id="btnRiapri">&#128275; Riapri valutazione</button>
       <button class="btn btn-ghost" type="button" id="btnTornaGioc">&#8592; Torna ai giocatori</button>
     </div>
@@ -220,6 +226,7 @@
       <button class="btn btn-pri" type="button" id="btnPmConferma">&#10004; Conferma finale</button>
       <button class="btn btn-pri" type="button" id="btnPmStampa">&#128424; Stampa scheda / PDF</button>
       <button class="btn" type="button" id="btnPmHtml">&#11015; Scarica scheda HTML</button>
+      <button class="btn" type="button" id="btnPmMail">&#9993; Invia alla CTL</button>
       <button class="btn" type="button" id="btnPmSeguito" hidden></button>
       <button class="btn" type="button" id="btnPmRiapri">&#128275; Riapri percorso</button>
       <button class="btn" type="button" id="btnPmCambia">Cambia percorso</button>
@@ -237,7 +244,7 @@
         <button class="btn" type="button" id="swReset">Azzera</button>
       </div>
       <div class="sw-man">
-        <label>Tempo (s) <input id="swManual" type="number" inputmode="decimal" step="0.01" min="0" placeholder="es. 21.37" /></label>
+        <label>Tempo (secondi) <input id="swManual" type="number" inputmode="decimal" step="0.01" min="0" placeholder="es. 21.37" /></label>
         <span class="sw-pts" id="swPts"></span>
       </div>
     </div>
@@ -255,7 +262,8 @@
       <h2>Classificazione Baskin EISI (PWA)</h2>
       <p>Versione <b id="infoVersion"></b></p>
       <p>App per compilare da smartphone, anche offline, la <em>Griglia di valutazione delle abilità in partita</em> e i percorsi A, B, C (sessioni consigliate fino a 4 giocatori per la griglia e 20 per i percorsi) prevista dall’Allegato A al regolamento di gioco (<em>La classificazione dei ruoli nel Baskin</em>, rev. 1 settembre 2025), di cui contiene il testo integrale.</p>
-      <p><b>Privacy:</b> i dati inseriti restano esclusivamente su questo dispositivo (memoria del browser). Nessun dato viene inviato in rete.</p>
+      <p><b>Privacy:</b> i dati inseriti restano esclusivamente su questo dispositivo (memoria del browser). Nessun dato viene inviato in rete, salvo le valutazioni che scegli tu di inviare alla CTL con la tua app di posta.</p>
+      <p><button class="help-link" type="button" data-go="guida">&#128203; Guida all’uso</button></p>
       <p>Autore: Daniele Lolli (UncleDan).</p>
       <p class="small">I loghi «EISI» e «Baskin» sono marchi registrati rispettivamente da Ente Italiano Sport Inclusivi e Associazione Baskin.</p>
       <p class="note-eisi">Il regolamento, i documenti di gara e gli altri documenti si trovano sul sito EISI nel menu Documenti <a href="https://eisi.it/eisi/documenti/" target="_blank" rel="noopener">https://eisi.it/eisi/documenti/</a> oppure in Area Download.</p>
@@ -263,6 +271,112 @@
       <div class="actions"><button class="btn" type="button" id="btnUpdate">&#10227; Verifica aggiornamenti</button>
       <button class="btn" type="button" id="btnSegnala">&#9888; Segnala un problema</button></div>
     </div>
+  </section>
+
+  <!-- ============ GUIDA ALL'USO (generata da docs/guida-it.md: tenerle allineate) ============ -->
+  <section class="screen" id="scr-guida" data-title="Guida all’uso">
+    <article class="card doc guida">
+<p>Questa guida spiega come usare l'app per compilare la <strong>Griglia di valutazione delle abilità in partita</strong> e i <strong>Percorsi A, B, C</strong> previsti dall'Allegato A al regolamento di gioco (<em>La classificazione dei ruoli nel Baskin</em>, rev. 1 settembre 2025).</p>
+
+<h2>📲 Installazione e uso offline</h2>
+<ul>
+<li>Apri l'indirizzo dell'app con il browser del telefono e scegli <strong>Aggiungi a schermata Home</strong> (o <strong>Installa app</strong>).</li>
+<li>Dopo la prima apertura l'app funziona <strong>anche senza connessione</strong>: serve la rete solo per inviare le valutazioni alla CTL, segnalare un problema o verificare gli aggiornamenti.</li>
+<li>I dati restano <strong>solo sul dispositivo</strong>, nella memoria del browser.</li>
+</ul>
+<h2>🏠 Schermata iniziale</h2>
+<ul>
+<li><strong>Nuova sessione</strong> (o <strong>Riprendi sessione</strong> se ce n'è una in corso): avvia una sessione di Griglia o di Percorsi.</li>
+<li><strong>Archivio valutazioni</strong>: le griglie e i percorsi confermati.</li>
+<li><strong>Testo integrale</strong>: il testo completo dell'Allegato A, con indice.</li>
+<li><strong>Guida all'uso</strong>: questa guida.</li>
+<li><strong>Informazioni</strong>: versione, aggiornamenti, segnalazioni, privacy.</li>
+<li>Se ci sono valutazioni confermate <strong>non ancora stampate</strong>, in alto compare un avviso con <strong>Stampa i rimanenti</strong>.</li>
+</ul>
+<h2>✏️ Nuova sessione</h2>
+<p>Scegli che cosa valutare:</p>
+<ul>
+<li><strong>Griglia di valutazione</strong>: abilità in partita, ruoli 3, 4 e 5. Consigliati <strong>fino a 4 giocatori</strong> per sessione.</li>
+<li><strong>Percorsi</strong>: percorsi A, B e C con cronometro. Consigliati <strong>fino a 20 giocatori</strong> per sessione.</li>
+</ul>
+<p>Toccando la riga della sessione in cima al pannello giocatori si inseriscono <strong>data</strong>, <strong>valutatore</strong> e, per la griglia, la <strong>gara osservata</strong>.</p>
+<h2>👤 Inserimento dei giocatori</h2>
+<ul>
+<li><strong>Squadra</strong>: obbligatoria.</li>
+<li><strong>N° maglia</strong>: obbligatorio nella <strong>griglia</strong>; <strong>facoltativo nei percorsi</strong>. Nei percorsi, senza numero serve <strong>cognome e nome</strong>, e sul pulsante del giocatore compaiono le <strong>iniziali</strong> di ogni parola, in maiuscolo (es. <em>Rossi Mario</em> → <strong>RM</strong>).</li>
+<li><strong>Cognome e nome</strong>, <strong>data di nascita</strong>, <strong>sesso</strong>, <strong>Sezione Territoriale</strong>: facoltativi (il sesso serve per il Percorso B).</li>
+<li>Solo nella griglia: <strong>colore della maglia</strong> (8 colori o uno personalizzato) e <strong>ruolo attuale</strong>.</li>
+<li>Dopo ogni inserimento l'app chiede se <strong>aggiungere un altro giocatore</strong>, finché rispondi <em>No</em> o raggiungi il numero consigliato. Oltre quel numero puoi ancora aggiungerne dal pulsante <strong>Aggiungi giocatore</strong>, con una conferma ogni volta.</li>
+</ul>
+<h2>🧑‍🤝‍🧑 Pannello giocatori</h2>
+<ul>
+<li>Ogni giocatore ha un pulsante: nella griglia nel <strong>colore della maglia</strong>, nei percorsi <strong>bluette</strong> (maschi) o <strong>fucsia</strong> (femmine).</li>
+<li>Tocca il pulsante per aprire la <strong>griglia</strong> o i <strong>percorsi</strong> di quel giocatore.</li>
+<li>Sotto ogni giocatore confermato ci sono i comandi di <strong>stampa</strong>; quando i giocatori sono più di 6 il pannello diventa compatto.</li>
+<li><strong>Stampa tutti i non stampati</strong>: stampa insieme le valutazioni confermate e non ancora stampate, una per pagina.</li>
+<li><strong>Invia alla CTL</strong>: invia per e-mail le valutazioni confermate della sessione (vedi sotto).</li>
+<li><strong>Chiudi sessione</strong>: se ci sono valutazioni non stampate, l'app propone di stamparle prima.</li>
+</ul>
+<h2>📝 Griglia di valutazione</h2>
+<ol>
+<li>Nel <strong>menu delle abilità</strong> tocca una delle cinque abilità.</li>
+<li>Scegli il <strong>livello</strong> (da 1 a 5) e premi <strong>Conferma</strong>: torni al menu. Il pulsante <strong>?</strong> apre l'aiuto con i profili dei livelli, gli esempi in forma estesa e la legenda.</li>
+<li>Mentre scegli il livello, sotto l'elenco compare quali <strong>malus</strong> restano possibili.</li>
+<li>Apri la voce <strong>Malus</strong>:<ul>
+<li><strong>Malus H</strong> (altezza inferiore a 155 cm, tolleranza 2 cm, −3 punti): per punteggi <strong>da 5 a 20</strong>.</li>
+<li><strong>Malus A.A.I.I.</strong> (protesi o menomazioni agli arti inferiori, fino a −6 punti): per punteggi <strong>da 21 a 25</strong>.</li>
+<li>La voce si apre anche prima di valutare tutte le abilità: ogni malus è <strong>attivo solo se il suo intervallo è ancora raggiungibile</strong> e si <strong>disattiva in tempo reale</strong> man mano che valuti. Se un malus selezionato diventa impossibile viene tolto, con un avviso.</li>
+</ul>
+</li>
+<li>Quando le cinque abilità sono valutate compare il <strong>risultato</strong>: punteggio, malus, punteggio finale e <strong>ruolo</strong> (5–10 → ruolo 3; 11–20 → ruolo 4; 21–25 → ruolo 5), con il confronto con il ruolo attuale.</li>
+<li><strong>Conferma finale</strong>: chiede conferma con il riepilogo. Dopo la conferma si attivano <strong>Stampa griglia / PDF</strong>, <strong>Scarica griglia HTML</strong> e <strong>Invia alla CTL</strong>. Per modificare usa <strong>Riapri valutazione</strong>.</li>
+</ol>
+<h2>⏱️ Percorsi</h2>
+<ol>
+<li>Toccando il giocatore scegli il <strong>percorso</strong> (A, B o C); lo schema del percorso è consultabile prima di iniziare.<ul>
+<li>Per il <strong>Percorso B</strong> serve il <strong>sesso</strong> (le fasce di tempo sono diverse).</li>
+<li>Per il <strong>Percorso C</strong> scegli la <strong>variante</strong> (da ruolo 3 a 4, soglia 20 secondi; da ruolo 2 a ruolo R, soglia 40 secondi).</li>
+</ul>
+</li>
+<li>Nel <strong>menu delle prove</strong> apri una delle tre prove.</li>
+<li><strong>Cronometro</strong>: <strong>Avvia</strong> / <strong>Ferma</strong>, <strong>Azzera</strong>. Il tempo si può anche <strong>scrivere a mano</strong> nel campo <em>Tempo (s)</em>. Lo schermo resta acceso durante la misurazione.</li>
+<li>Segna i <strong>criteri</strong> tecnici della prova: il totale dei punti si aggiorna da solo. Premi <strong>Conferma prova</strong>.</li>
+<li>Dopo le tre prove l'<strong>esito</strong> indica il ruolo di partenza o il percorso successivo (es. dal Percorso A al Percorso C). Con <strong>Conferma finale</strong> si attivano stampa, HTML e <strong>Invia alla CTL</strong>; il pulsante del <strong>seguito</strong> avvia il percorso successivo per lo stesso giocatore.</li>
+<li><strong>Riapri percorso</strong> permette di correggere; <strong>Cambia percorso</strong> e <strong>Dati del giocatore</strong> sono sempre disponibili prima della conferma.</li>
+</ol>
+<h2>✉️ Invio alla CTL</h2>
+<p>Il pulsante <strong>Invia alla CTL</strong> si trova nel pannello giocatori (tutte le valutazioni confermate della sessione), nel menu di ogni giocatore confermato e in ogni voce dell'<strong>Archivio</strong>.</p>
+<ol>
+<li>Scegli la <strong>CTL destinataria</strong> dall'elenco oppure <strong>Altro indirizzo</strong>. L'ultima scelta viene ricordata.</li>
+<li>Se le valutazioni sono più di una, spunta quelle da inviare: vengono riunite in <strong>un solo file HTML</strong>, una scheda per pagina.</li>
+<li>Scegli come inviare:<ul>
+<li><strong>Invia con allegato</strong> (telefono): si apre la condivisione, scegli l'app di posta. Il file è già allegato e il testo è già scritto; l'indirizzo della CTL è copiato negli appunti e scritto in cima al messaggio: incollalo come destinatario se l'app non lo inserisce.</li>
+<li><strong>Scarica il file e scrivi la mail</strong>: il file viene scaricato e si apre la mail già indirizzata, con oggetto e testo: <strong>allega il file scaricato</strong> prima di inviare.</li>
+</ul>
+</li>
+<li>Il file HTML si apre con qualsiasi browser e si può stampare o salvare in PDF.</li>
+</ol>
+<p>Le valutazioni inviate contano come <strong>stampate</strong> per l'avviso di uscita.</p>
+<h2>🖨️ Stampa e uscita</h2>
+<ul>
+<li><strong>Stampa / PDF</strong> apre la stampa del browser: per un PDF scegli <em>Salva come PDF</em>.</li>
+<li><strong>Scarica HTML</strong> salva la scheda in un file che contiene anche i loghi.</li>
+<li>Se esci dall'app (<strong>Indietro</strong> dalla schermata iniziale, <strong>Chiudi sessione</strong>, <strong>Nuova sessione</strong>) con valutazioni confermate non stampate, l'app chiede se <strong>stamparle</strong>. Se chiudi l'app dalle app recenti l'avviso ricompare alla riapertura.</li>
+</ul>
+<h2>🗂️ Archivio</h2>
+<ul>
+<li>Contiene le <strong>griglie</strong> e i <strong>percorsi</strong> confermati, con <strong>Stampa</strong>, <strong>HTML</strong>, <strong>Invia alla CTL</strong> ed <strong>Elimina</strong>.</li>
+<li>Con più griglie dello stesso giocatore (stessa squadra e numero) l'app calcola la <strong>media</strong> dei risultati.</li>
+<li><strong>Nuova valutazione</strong> riporta un giocatore dell'archivio in una sessione Griglia.</li>
+<li><strong>Esporta archivio</strong> salva tutto in un file <code>.json</code>; <strong>Importa archivio</strong> lo ricarica, anche su un altro dispositivo.</li>
+</ul>
+<h2>ℹ️ Informazioni, aggiornamenti e segnalazioni</h2>
+<ul>
+<li><strong>Verifica aggiornamenti</strong>: controlla se c'è una nuova versione; per applicarla chiudi e riapri l'app.</li>
+<li><strong>Segnala un problema</strong>: apre una nuova segnalazione sul repository GitHub del progetto, con versione e browser già indicati (serve un account GitHub). Non vengono allegati dati dei giocatori.</li>
+<li>Le versioni di prova hanno il suffisso <strong>b</strong> (es. <code>26.0b4</code>); la versione definitiva non lo ha (es. <code>26.0</code>).</li>
+</ul>
+    </article>
   </section>
 
   <!-- ============ TESTO INTEGRALE ============ -->
@@ -736,6 +850,7 @@
 <script src="js/logos.js"></script>
 <script src="js/seg.js"></script>
 <script src="js/percorsi-data.js"></script>
+<script src="js/ctl.js"></script>
 <script src="js/app.js"></script>
 <script src="js/percorsi.js"></script>
 </body>

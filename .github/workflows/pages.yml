@@ -2,6 +2,8 @@
 #   - ramo main -> / (radice del sito)
 #   - ramo beta -> /beta/
 # Se main non contiene pwa/index.html, la radice / reindirizza a /beta/.
+# Il vecchio indirizzo /pwa/ reindirizza a / (o a /beta/ se main non ha l'app),
+# così i link e i segnalibri precedenti restano validi.
 # Ad ogni push su uno dei due rami il sito viene ricostruito con l'ultimo
 # stato di entrambi, così una pubblicazione non cancella l'altra.
 name: Deploy to Pages
@@ -67,6 +69,31 @@ jobs:
           HTML
             echo "main senza index.html: / -> /beta/"
           fi
+          # Vecchio indirizzo /pwa/ -> app corrente (conserva #ancora e ?parametri)
+          if [ -f _site/beta/index.html ] && ! has main; then DEST="../beta/"; else DEST="../"; fi
+          mkdir -p _site/pwa
+          cat > _site/pwa/index.html <<HTML
+          <!DOCTYPE html>
+          <html lang="it"><head><meta charset="utf-8">
+          <title>Classificazione Baskin EISI (PWA)</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <meta http-equiv="refresh" content="0; url=${DEST}">
+          <script>location.replace('${DEST}' + location.search + location.hash);</script></head>
+          <body><p>L'app si è spostata: <a href="${DEST}">Classificazione Baskin EISI (PWA)</a></p></body></html>
+          HTML
+          # Chi aveva installato l'app in /pwa/ ha un service worker con la vecchia
+          # copia in cache: questo lo sostituisce, cancella solo le cache vecchio
+          # stile, si disinstalla e ricarica le pagine, che arrivano al redirect.
+          cat > _site/pwa/service-worker.js <<'JS'
+          self.addEventListener('install', () => self.skipWaiting());
+          self.addEventListener('activate', e => e.waitUntil((async () => {
+            for (const k of await caches.keys())
+              if (k.startsWith('classificazione-baskin-eisi-') && !k.includes('@')) await caches.delete(k);
+            await self.registration.unregister();
+            for (const c of await self.clients.matchAll({ type: 'window' })) c.navigate(c.url);
+          })()));
+          JS
+          echo "/pwa/ -> ${DEST}"
           touch _site/.nojekyll
 
       - name: Upload artifact

@@ -1,4 +1,4 @@
-/* styles.css by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b3 - 2026-11-17 21-21-34 */
+/* styles.css by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b4 - 2026-11-18 13-52-08 */
 /* =====================================================================
    Classificazione Baskin EISI (PWA) - stili
    Font: Arial; Arial Narrow per le intestazioni.
@@ -519,3 +519,16 @@ body:not([data-tipo="percorsi"]) .only-percorsi{ display: none !important; }
 .players.compact .pl-act{ padding: 0 10px 0 0; flex: none; }
 .players.compact .pl-act .btn{ min-height: 34px; padding: 4px 10px; font-size: 13px; }
 .players.compact .pl-printed{ display: none; }
+
+/* invio alla CTL */
+.ctl-list .chk span{ display: flex; flex-direction: column; gap: 2px; }
+.ctl-list .chk input[type=email]{ font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; margin-top: 4px; width: 100%; height: auto; box-sizing: border-box; accent-color: auto; }
+
+/* iniziali al posto del numero (percorsi senza n° di maglia) */
+.pl-num .sig-m{ font-size: .8em; }
+.pl-num .sig-l{ font-size: .6em; letter-spacing: -.02em; }
+
+/* guida all'uso */
+.guida li{ margin: 4px 0; }
+.guida ul ul,.guida ol ul{ margin: 4px 0; }
+.guida code{ background: #eef0f2; padding: 0 4px; border-radius: 4px; }

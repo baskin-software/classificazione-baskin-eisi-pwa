@@ -78,19 +78,36 @@ inviato in rete.
 
 ```
 pwa/
-  index.html              schermate + testo integrale
+  index.html              schermate + testo integrale + guida all'uso
   manifest.webmanifest
   service-worker.js       cache-first, offline completo
   css/styles.css
   js/data.js              testi della griglia, forma estesa, legenda, malus
   js/logos.js             loghi SVG come data URI (per l'export HTML)
-  js/app.js               logica (griglia, archivio, stampa)
+  js/ctl.js               indirizzi delle CTL per «Invia alla CTL»
+  js/app.js               logica (griglia, archivio, stampa, invio alla CTL)
   js/seg.js               display a 7 segmenti (dal Tabellone)
   js/percorsi-data.js     tabelle di valutazione dei percorsi
   js/percorsi.js          percorsi A, B, C e cronometro
   icons/                  icone PWA e loghi vettoriali (logos/)
   img/doc/                figure del testo integrale
+docs/guida-it.md          guida all'uso (copia integrata in index.html)
+tools/genera-guida.py     rigenera la guida integrata dal markdown
+.github/workflows/pages.yml  pubblicazione su GitHub Pages
 ```
+
+## Guida all'uso
+
+Le istruzioni complete sono nella [Guida all'uso](docs/guida-it.md). La stessa guida è
+integrata nell'app (**Guida all'uso** nella schermata iniziale e in Informazioni),
+disponibile offline. Le due copie devono restare allineate: dopo aver modificato il
+markdown, `python3 tools/genera-guida.py` rigenera la schermata `scr-guida` di
+`pwa/index.html`.
+
+## Invio alla CTL
+
+Gli indirizzi delle Commissioni Tecniche Locali sono in `pwa/js/ctl.js`
+(`CTL_DESTINATARI`): per aggiungerne una basta una riga `{ nome, email }`.
 
 ## Versioni
 
@@ -107,7 +124,7 @@ rilascia `26.0` senza altre modifiche funzionali. Lo stesso vale per i rilasci
 successivi (`26.1b1` → `26.1`).
 
 A ogni build aggiornare insieme `APP_VERSION` in `pwa/js/app.js` e `CACHE_NAME`
-in `pwa/service-worker.js`, con il tag git corrispondente (`v26.0b3`, poi `v26.0`).
+in `pwa/service-worker.js`, con il tag git corrispondente (`v26.0b4`, poi `v26.0`).
 
 ## Pubblicazione su GitHub Pages
 
@@ -116,6 +133,11 @@ Il workflow `.github/workflows/pages.yml` pubblica a ogni push su `main` o `beta
 - ramo `main` → radice del sito (`/`);
 - ramo `beta` → `/beta/`;
 - se `main` non contiene `pwa/index.html`, la radice `/` reindirizza a `/beta/`.
+
+Il vecchio indirizzo `/pwa/` reindirizza a `/` (o a `/beta/` se `main` non ha l'app),
+così link e segnalibri precedenti restano validi; chi aveva installato l'app da
+`/pwa/` riceve un service worker che si disinstalla e porta al nuovo indirizzo
+(conviene reinstallare l'app dalla nuova pagina).
 
 Il sito è sempre ricostruito con l'ultimo stato di entrambi i rami, quindi
 pubblicare uno non cancella l'altro. Prima del primo deploy, nel repository:
