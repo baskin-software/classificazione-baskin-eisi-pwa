@@ -1,0 +1,79 @@
+# Pubblica su GitHub Pages:
+#   - ramo main -> / (radice del sito)
+#   - ramo beta -> /beta/
+# Se main non contiene pwa/index.html, la radice / reindirizza a /beta/.
+# Ad ogni push su uno dei due rami il sito viene ricostruito con l'ultimo
+# stato di entrambi, così una pubblicazione non cancella l'altra.
+name: Deploy to Pages
+
+on:
+  push:
+    branches: ["main", "beta"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout (tutti i rami)
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Compone il sito
+        run: |
+          set -e
+          mkdir -p _site
+          has() { git cat-file -e "origin/$1:pwa/index.html" 2>/dev/null; }
+          export_branch() { # ramo destinazione
+            mkdir -p "$2"
+            git archive "origin/$1" pwa | tar -x -C "$2" --strip-components=1
+          }
+          if has main; then
+            export_branch main _site
+            echo "main -> /"
+          fi
+          if has beta; then
+            export_branch beta _site/beta
+            echo "beta -> /beta/"
+          fi
+          if [ ! -f _site/index.html ]; then
+            if [ ! -f _site/beta/index.html ]; then
+              echo "Né main né beta contengono pwa/index.html" >&2; exit 1
+            fi
+            cat > _site/index.html <<'HTML'
+          <!DOCTYPE html>
+          <html lang="it"><head><meta charset="utf-8">
+          <title>Classificazione Baskin EISI (PWA)</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <meta http-equiv="refresh" content="0; url=beta/">
+          <script>location.replace('beta/');</script></head>
+          <body><p><a href="beta/">Classificazione Baskin EISI (PWA) – versione beta</a></p></body></html>
+          HTML
+            echo "main senza index.html: / -> /beta/"
+          fi
+          touch _site/.nojekyll
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '_site'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

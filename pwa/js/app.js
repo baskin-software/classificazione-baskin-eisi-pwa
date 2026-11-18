@@ -1,4 +1,4 @@
-/* app.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b1 - 2026-11-17 18-44-14 */
+/* app.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b2 - 2026-11-17 19-24-25 */
 /* =====================================================================
    Classificazione Baskin EISI (PWA) - logica applicativa
    Autore: Daniele Lolli (UncleDan)
@@ -17,7 +17,7 @@
    ===================================================================== */
 'use strict';
 
-const APP_VERSION = '26.0b1';
+const APP_VERSION = '26.0b2';
 const APP_NAME = 'Classificazione Baskin EISI (PWA)';
 /* numero di giocatori consigliato per sessione: oltre non si propone più
    l'aggiunta automatica, ma si può aggiungere dalla pulsantiera confermando */
@@ -937,6 +937,16 @@ function toast(msg){
   clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2600);
 }
 
+const REPO_ISSUES = 'https://github.com/baskin-software/classificazione-baskin-eisi-pwa/issues/new';
+function segnalaProblema(){
+  if(navigator.onLine === false){ toast('Sei offline: riprova quando sei connesso'); return; }
+  const standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) ? 'app installata' : 'browser';
+  const body = '**Cosa è successo / cosa si vorrebbe**\n\n\n\n**Passi per riprodurre**\n1. \n\n---\nVersione app: ' + APP_VERSION +
+    '\nModalità: ' + standalone + '\nBrowser: ' + navigator.userAgent + '\n';
+  const url = REPO_ISSUES + '?title=' + encodeURIComponent('[' + APP_VERSION + '] ') + '&body=' + encodeURIComponent(body);
+  window.open(url, '_blank', 'noopener');
+}
+
 async function verificaAggiornamenti(){
   try{
     const r = await fetch('service-worker.js', {cache:'no-store'});
@@ -1059,6 +1069,7 @@ function init(){
   $('#btnExport').onclick = esportaArchivio;
   $('#fileImport').onchange = e => { if(e.target.files[0]) importaArchivio(e.target.files[0]); e.target.value = ''; };
   $('#btnUpdate').onclick = verificaAggiornamenti;
+  $('#btnSegnala').onclick = segnalaProblema;
   document.addEventListener('keydown', e => { if(e.key === 'Escape') chiudiSheet(); });
 
   // all'avvio si parte sempre dalla home (lo stato di navigazione non è persistente).

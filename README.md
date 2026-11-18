@@ -107,13 +107,28 @@ rilascia `26.0` senza altre modifiche funzionali. Lo stesso vale per i rilasci
 successivi (`26.1b1` → `26.1`).
 
 A ogni build aggiornare insieme `APP_VERSION` in `pwa/js/app.js` e `CACHE_NAME`
-in `pwa/service-worker.js`, con il tag git corrispondente (`v26.0b1`, poi `v26.0`).
+in `pwa/service-worker.js`, con il tag git corrispondente (`v26.0b2`, poi `v26.0`).
 
 ## Pubblicazione su GitHub Pages
 
-Il workflow `.github/workflows/beta.yml` pubblica a ogni push sul ramo `beta`.
-Prima del primo deploy, nel repository: **Settings → Pages → Build and deployment
-→ Source: GitHub Actions**. L'app sarà raggiungibile in `/pwa/`.
+Il workflow `.github/workflows/pages.yml` pubblica a ogni push su `main` o `beta`:
+
+- ramo `main` → radice del sito (`/`);
+- ramo `beta` → `/beta/`;
+- se `main` non contiene `pwa/index.html`, la radice `/` reindirizza a `/beta/`.
+
+Il sito è sempre ricostruito con l'ultimo stato di entrambi i rami, quindi
+pubblicare uno non cancella l'altro. Prima del primo deploy, nel repository:
+
+1. **Settings → Pages → Build and deployment → Source: GitHub Actions**;
+2. **Settings → Environments → github-pages → Deployment branches**: consentire
+   sia `main` sia `beta`.
+
+## Segnalazioni
+
+Dall'app, in **Informazioni → Segnala un problema**, si apre una nuova issue su
+<https://github.com/baskin-software/classificazione-baskin-eisi-pwa/issues> con
+versione, modalità e browser già compilati (nessun dato dei giocatori).
 
 ## Licenza
 
