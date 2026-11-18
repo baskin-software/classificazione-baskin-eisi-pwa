@@ -8,7 +8,7 @@ La stessa guida è integrata nell'app (**Guida all'uso** nella schermata inizial
 
 ## 📲 Installazione e uso offline
 
-- Apri l'indirizzo dell'app con il browser del telefono e scegli **Aggiungi a schermata Home** (o **Installa app**).
+- Apri l'indirizzo dell'app con il browser e tocca **Installa app** nella schermata iniziale (o in **Informazioni**): se il browser lo permette l'installazione parte subito, altrimenti si aprono le istruzioni per **Android**, **iPhone/iPad** e **computer**, con prima quella del tuo dispositivo. Il pulsante sparisce quando l'app è installata.
 - Dopo la prima apertura l'app funziona **anche senza connessione**: serve la rete solo per inviare le valutazioni alla CTL, segnalare un problema o verificare gli aggiornamenti.
 - I dati restano **solo sul dispositivo**, nella memoria del browser.
 

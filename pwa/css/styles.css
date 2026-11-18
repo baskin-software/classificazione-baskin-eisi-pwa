@@ -1,4 +1,4 @@
-/* styles.css by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b7 - 2026-11-18 16-32-16 */
+/* styles.css by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b8 - 2026-11-18 16-53-03 */
 /* =====================================================================
    Classificazione Baskin EISI (PWA) - stili
    Font: Arial; Arial Narrow per le intestazioni.
@@ -35,7 +35,7 @@ a{ color: var(--orange); }
 .appbar{
   position: sticky; top: 0; z-index: 20;
   display: flex; align-items: center; gap: 10px;
-  background: var(--dark); color: #fff;
+  background: #000; color: #fff;   /* nera come nel Tabellone: logo EISI trasparente */
   padding: 8px 12px; padding-top: calc(8px + env(safe-area-inset-top));
   box-shadow: 0 2px 8px rgba(0,0,0,.25);
 }
@@ -43,7 +43,7 @@ a{ color: var(--orange); }
 body:not([data-screen="home"]) .appbar-back{ display: block; }
 .logo{ display: block; }
 .logo-baskin{ width: 52px; height: 52px; }
-.logo-eisi-wrap{ background: #fff; border-radius: 8px; padding: 3px; display: inline-flex; }
+.logo-eisi-wrap{ display: inline-flex; }
 .logo-eisi{ width: 44px; height: 44px; }
 .appbar-title{ flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.15; }
 .appbar-t1{ font-size: 19px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -54,6 +54,7 @@ body:not([data-screen="home"]) .appbar-back{ display: block; }
 .screen{ display: none; }
 .screen.active{ display: block; }
 .intro{ margin: 4px 4px 14px; }
+.install-card p{ margin: 0 0 8px; }
 
 .tiles{ display: grid; gap: 10px; }
 .tile{

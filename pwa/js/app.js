@@ -1,4 +1,4 @@
-/* app.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b7 - 2026-11-18 16-32-16 */
+/* app.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b8 - 2026-11-18 16-53-03 */
 /* =====================================================================
    Classificazione Baskin EISI (PWA) - logica applicativa
    Autore: Daniele Lolli (UncleDan)
@@ -17,7 +17,7 @@
    ===================================================================== */
 'use strict';
 
-const APP_VERSION = '26.0b7';
+const APP_VERSION = '26.0b8';
 const APP_NAME = 'Classificazione Baskin EISI (PWA)';
 /* numero di giocatori consigliato per sessione: oltre non si propone più
    l'aggiunta automatica, ma si può aggiungere dalla pulsantiera confermando */
@@ -1121,6 +1121,49 @@ function segnalaProblema(){
   window.open(url, '_blank', 'noopener');
 }
 
+/* =====================================================================
+   INSTALLA APP
+   Chrome/Edge/Samsung: prompt nativo (beforeinstallprompt).
+   iPhone/iPad: nessun prompt, istruzioni per «Aggiungi alla schermata Home».
+   Già installata (standalone): pulsanti nascosti.
+   ===================================================================== */
+let promptInstall = null, appenaInstallata = false;
+const installata = () => (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isAndroid = () => /android/i.test(navigator.userAgent);
+/* il pulsante c'è su ogni dispositivo finché l'app non è installata */
+function aggiornaInstalla(){
+  const vedi = !installata() && !appenaInstallata;
+  if($('#homeInstalla')) $('#homeInstalla').hidden = !vedi;
+  if($('#btnInfoInstalla')) $('#btnInfoInstalla').hidden = !vedi;
+}
+const ISTR_INSTALLA = {
+  android: { nome:'Android', html:`<p><b>Chrome</b> (e Edge, Opera, Brave):</p><ol>
+      <li>Tocca il menu <b>⋮</b> in alto a destra.</li>
+      <li>Scegli <b>Installa app</b> o <b>Aggiungi a schermata Home</b> e conferma.</li></ol>
+    <p><b>Samsung Internet</b>: menu <b>≡</b> in basso → <b>Aggiungi pagina a</b> → <b>Schermata Home</b>.</p>
+    <p><b>Firefox</b>: menu <b>⋮</b> → <b>Installa</b> (o <b>Aggiungi a schermata Home</b>).</p>` },
+  ios: { nome:'iPhone / iPad', html:`<ol>
+      <li>Apri l’app con <b>Safari</b> (su iOS 16.4 e successivi anche con Chrome o Edge).</li>
+      <li>Tocca <b>Condividi</b> (il quadrato con la freccia verso l’alto).</li>
+      <li>Scegli <b>Aggiungi alla schermata Home</b> e conferma con <b>Aggiungi</b>.</li></ol>` },
+  pc: { nome:'Computer', html:`<p><b>Chrome / Edge</b>: tocca l’icona <b>Installa</b> a destra nella barra degli indirizzi, oppure menu <b>⋮</b> → <b>Trasmetti, salva e condividi</b> → <b>Installa pagina come app</b> (Edge: <b>App</b> → <b>Installa questo sito come app</b>).</p>
+    <p><b>Safari su Mac</b>: menu <b>File</b> → <b>Aggiungi al Dock</b>.</p>
+    <p><b>Firefox</b> sul computer non installa le app web: si può usare normalmente nel browser.</p>` }
+};
+async function installaApp(){
+  if(promptInstall){   // installazione diretta offerta dal browser
+    promptInstall.prompt();
+    try{ const c = await promptInstall.userChoice; if(c && c.outcome === 'accepted') appenaInstallata = true; }catch(_){}
+    promptInstall = null; aggiornaInstalla(); return;
+  }
+  const ordine = isIOS() ? ['ios','android','pc'] : isAndroid() ? ['android','ios','pc'] : ['pc','android','ios'];
+  const nota = '<p class="small muted">Dopo l’installazione l’app si apre dall’icona come le altre app e funziona anche senza connessione.</p>';
+  apriSheet('Installa app', ordine.map(k => ({ nome: ISTR_INSTALLA[k].nome, html: ISTR_INSTALLA[k].html + nota })));
+}
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); promptInstall = e; aggiornaInstalla(); });
+window.addEventListener('appinstalled', () => { promptInstall = null; appenaInstallata = true; aggiornaInstalla(); toast('App installata'); });
+
 async function verificaAggiornamenti(){
   try{
     const r = await fetch('service-worker.js', {cache:'no-store'});
@@ -1246,6 +1289,8 @@ function init(){
   $('#fileImport').onchange = e => { if(e.target.files[0]) importaArchivio(e.target.files[0]); e.target.value = ''; };
   $('#btnUpdate').onclick = verificaAggiornamenti;
   $('#btnSegnala').onclick = segnalaProblema;
+  $$('[data-install]').forEach(b => b.onclick = installaApp);
+  aggiornaInstalla();
   document.addEventListener('keydown', e => { if(e.key === 'Escape') chiudiSheet(); });
 
   // all'avvio si parte sempre dalla home (lo stato di navigazione non è persistente).

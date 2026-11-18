@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<!-- index.html by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b7 - 2026-11-18 16-32-16 -->
+<!-- index.html by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b8 - 2026-11-18 16-53-03 -->
 <html lang="it">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Classificazione Baskin EISI (PWA)</title>
 
-  <meta name="theme-color" content="#2f3740" />
+  <meta name="theme-color" content="#000000" />
   <meta name="description" content="Griglia di valutazione delle abilità in partita (Baskin, ruoli 3-4-5) con il testo integrale della classificazione dei ruoli. Funziona offline." />
 
   <!-- PWA -->
@@ -40,6 +40,10 @@
   <!-- ============ HOME ============ -->
   <section class="screen" id="scr-home" data-title="Classificazione Baskin">
     <p class="intro">Classificazione dei ruoli nel Baskin secondo l’Allegato A al regolamento di gioco (rev. 1 settembre 2025): griglia di valutazione delle abilità in partita e percorsi A, B, C.</p>
+    <div class="card install-card" id="homeInstalla" hidden>
+      <p>Installa l’app sul tuo dispositivo (Android, iPhone, iPad o computer): si apre dall’icona e funziona anche senza connessione.</p>
+      <div class="actions"><button class="btn btn-pri" type="button" data-install>&#11015; Installa app</button></div>
+    </div>
     <div class="card warn-print" id="homeDaStampare" hidden>
       <p><b>&#9888; <span id="homeDaStampareN"></span></b></p>
       <div class="actions"><button class="btn btn-pri" type="button" id="btnHomeStampa">&#128424; Stampa i rimanenti</button>
@@ -269,7 +273,8 @@
       <p class="note-eisi">Il regolamento, i documenti di gara e gli altri documenti si trovano sul sito EISI nel menu Documenti <a href="https://eisi.it/eisi/documenti/" target="_blank" rel="noopener">https://eisi.it/eisi/documenti/</a> oppure in Area Download.</p>
       <p class="small"><b>Segnalazioni:</b> il pulsante qui sotto apre una nuova segnalazione (issue) sul repository GitHub del progetto, con versione dell’app e tipo di browser già indicati; serve la connessione e un account GitHub. Non vengono allegati i dati dei giocatori.</p>
       <div class="actions"><button class="btn" type="button" id="btnUpdate">&#10227; Verifica aggiornamenti</button>
-      <button class="btn" type="button" id="btnSegnala">&#9888; Segnala un problema</button></div>
+      <button class="btn" type="button" id="btnSegnala">&#9888; Segnala un problema</button>
+      <button class="btn" type="button" data-install id="btnInfoInstalla" hidden>&#11015; Installa app</button></div>
     </div>
   </section>
 
@@ -280,7 +285,7 @@
 
 <h2>📲 Installazione e uso offline</h2>
 <ul>
-<li>Apri l'indirizzo dell'app con il browser del telefono e scegli <strong>Aggiungi a schermata Home</strong> (o <strong>Installa app</strong>).</li>
+<li>Apri l'indirizzo dell'app con il browser e tocca <strong>Installa app</strong> nella schermata iniziale (o in <strong>Informazioni</strong>): se il browser lo permette l'installazione parte subito, altrimenti si aprono le istruzioni per <strong>Android</strong>, <strong>iPhone/iPad</strong> e <strong>computer</strong>, con prima quella del tuo dispositivo. Il pulsante sparisce quando l'app è installata.</li>
 <li>Dopo la prima apertura l'app funziona <strong>anche senza connessione</strong>: serve la rete solo per inviare le valutazioni alla CTL, segnalare un problema o verificare gli aggiornamenti.</li>
 <li>I dati restano <strong>solo sul dispositivo</strong>, nella memoria del browser.</li>
 </ul>
