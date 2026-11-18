@@ -84,7 +84,8 @@ pwa/
   css/styles.css
   js/data.js              testi della griglia, forma estesa, legenda, malus
   js/logos.js             loghi SVG come data URI (per l'export HTML)
-  js/ctl.js               indirizzi delle CTL per «Invia alla CTL»
+  js/ctl.js               elenco predefinito delle CTL
+  js/elenchi.js           elenchi squadre e CTL, import/export CSV
   js/app.js               logica (griglia, archivio, stampa, invio alla CTL)
   js/seg.js               display a 7 segmenti (dal Tabellone)
   js/percorsi-data.js     tabelle di valutazione dei percorsi
@@ -104,10 +105,31 @@ disponibile offline. Le due copie devono restare allineate: dopo aver modificato
 markdown, `python3 tools/genera-guida.py` rigenera la schermata `scr-guida` di
 `pwa/index.html`.
 
-## Invio alla CTL
+## Squadre e CTL
 
-Gli indirizzi delle Commissioni Tecniche Locali sono in `pwa/js/ctl.js`
-(`CTL_DESTINATARI`): per aggiungerne una basta una riga `{ nome, email }`.
+Nella schermata **Squadre e CTL** ogni utente gestisce sul proprio dispositivo:
+
+- l'elenco delle **squadre**, con nome e due colori di maglia;
+- l'elenco delle **CTL** con l'indirizzo e-mail per «Invia alla CTL».
+
+Con una sola voce in elenco, la squadra o la CTL viene proposta in automatico
+(modificabile). Entrambi gli elenchi si importano ed esportano in **CSV**
+(separatore `;` o `,`, intestazione facoltativa):
+
+```csv
+nome;colore1;colore2
+Baskin Esempio;rosso;bianco
+Altra Squadra;#2962ff;#ffe000
+```
+
+```csv
+nome;email
+CTL Emilia-Romagna;ctl.emiliaromagna@eisi.it
+```
+
+I colori si scrivono come `#rrggbb` o per nome (rosso, blu, bianco, nero, giallo,
+verde, azzurro, viola, arancione, grigio, rosa, granata…). L'elenco CTL
+**predefinito**, con cui parte l'app, è in `pwa/js/ctl.js` (`CTL_DESTINATARI`).
 
 ## Versioni
 
@@ -124,7 +146,7 @@ rilascia `26.0` senza altre modifiche funzionali. Lo stesso vale per i rilasci
 successivi (`26.1b1` → `26.1`).
 
 A ogni build aggiornare insieme `APP_VERSION` in `pwa/js/app.js` e `CACHE_NAME`
-in `pwa/service-worker.js`, con il tag git corrispondente (`v26.0b8`, poi `v26.0`).
+in `pwa/service-worker.js`, con il tag git corrispondente (`v26.0b9`, poi `v26.0`).
 
 ## Pubblicazione su GitHub Pages
 

@@ -1,4 +1,4 @@
-/* app.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b8 - 2026-11-18 16-53-03 */
+/* app.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b9 - 2026-11-18 17-15-43 */
 /* =====================================================================
    Classificazione Baskin EISI (PWA) - logica applicativa
    Autore: Daniele Lolli (UncleDan)
@@ -17,7 +17,7 @@
    ===================================================================== */
 'use strict';
 
-const APP_VERSION = '26.0b8';
+const APP_VERSION = '26.0b9';
 const APP_NAME = 'Classificazione Baskin EISI (PWA)';
 /* numero di giocatori consigliato per sessione: oltre non si propone più
    l'aggiunta automatica, ma si può aggiungere dalla pulsantiera confermando */
@@ -158,7 +158,7 @@ function daStampare(){
 /* =====================================================================
    NAVIGAZIONE
    ===================================================================== */
-const SCREENS = ['home','nuova','sessione','giocatore','abilita','livello','malus','archivio','percorsi','perc-menu','perc-prova','documento','guida','info'];
+const SCREENS = ['home','nuova','sessione','giocatore','abilita','livello','malus','archivio','percorsi','perc-menu','perc-prova','documento','guida','elenchi','info'];
 const NEED_SESS = ['sessione','giocatore','abilita','livello','malus','percorsi','perc-menu','perc-prova'];
 
 function show(name){
@@ -174,7 +174,7 @@ function show(name){
   const scr = $('#scr-' + name);
   $('#appbarTitle').textContent = scr ? scr.dataset.title : '';
   ({ home: renderHome, sessione: renderSessione, giocatore: renderIdent, abilita: renderMenuAbilita,
-     livello: renderLivello, malus: renderMalus, archivio: renderArchivio,
+     livello: renderLivello, malus: renderMalus, archivio: renderArchivio, elenchi: () => typeof renderElenchi === 'function' && renderElenchi(),
      percorsi: () => renderSelettorePercorsi(), 'perc-menu': () => renderPercMenu(), 'perc-prova': () => renderPercProva() })[name]?.();
 }
 function go(name){
@@ -342,6 +342,7 @@ function setColore(c){
   cu.classList.toggle('sel', !!personal);
   try{ cu.value = /^#[0-9a-f]{6}$/i.test(colScelto) ? colScelto : '#ffffff'; }catch(_){}
   if(personal) cu.style.background = colScelto; else cu.style.background = '';
+  $$('#teamColors [data-tcolor]').forEach(b => b.classList.toggle('sel', b.dataset.tcolor === colScelto));
 }
 
 function renderIdent(){
@@ -356,6 +357,7 @@ function renderIdent(){
     col = u.dati.colore || '';
   }
   setColore(col);
+  if(typeof elenchiIdent === 'function') elenchiIdent(!g);
   $('#idErr').hidden = true;
   window.scrollTo(0,0);
   setTimeout(() => (g || !$('#p_squadra').value ? $('#p_squadra') : $('#p_numero')).focus(), 80);
@@ -794,7 +796,8 @@ function popolaSuggerimenti(){
   const tutti = archivio().concat(S ? S.giocatori : []).concat(typeof percTutti === 'function' ? percTutti() : []);
   const uniq = k => [...new Set(tutti.map(g => g.dati[k]).filter(Boolean))];
   $('#dlSezioni').innerHTML = uniq('sezione').map(s => `<option value="${esc(s)}">`).join('');
-  $('#dlSquadre').innerHTML = uniq('squadra').map(s => `<option value="${esc(s)}">`).join('');
+  const squadre = [...new Set((typeof elencoSquadre === 'function' ? elencoSquadre().map(s => s.nome) : []).concat(uniq('squadra')))];
+  $('#dlSquadre').innerHTML = squadre.map(s => `<option value="${esc(s)}">`).join('');
 }
 
 /* =====================================================================
@@ -993,17 +996,21 @@ ${lista.map(x => htmlElemento(x, LOGO_BASKIN, LOGO_EISI)).join('\n')}
 function apriInvioCTL(lista, preselezione){
   if(!lista.length){ toast('Nessuna valutazione confermata da inviare'); return; }
   INV = { lista, sel: new Set(preselezione || lista.map(x => x.item.id)) };
-  const ultima = store.get(KEY_CTL, CTL_DESTINATARI[0] ? CTL_DESTINATARI[0].email : '');
-  const noto = CTL_DESTINATARI.some(c => c.email === ultima);
+  const elenco = elencoCTL();
+  /* preselezione: l'ultima usata se è in elenco; se l'elenco ha una sola CTL, quella */
+  let ultima = store.get(KEY_CTL, '');
+  if(!elenco.some(c => c.email === ultima) && elenco.length === 1) ultima = elenco[0].email;
+  const noto = !ultima || elenco.some(c => c.email === ultima);
   const fileOk = !!(navigator.canShare && window.File && navigator.canShare({ files: [new File(['x'], 'x.html', { type:'text/html' })] }));
   const html = `
     <p><b>Destinatario</b></p>
-    <div class="ctl-list">${CTL_DESTINATARI.map(c => `
+    <div class="ctl-list">${elenco.map(c => `
       <label class="chk"><input type="radio" name="ctl" value="${esc(c.email)}" ${c.email === ultima ? 'checked' : ''}/>
         <span><b>${esc(c.nome)}</b><small>${esc(c.email)}</small></span></label>`).join('')}
       <label class="chk"><input type="radio" name="ctl" value="" ${noto ? '' : 'checked'}/>
         <span><b>Altro indirizzo</b><input type="email" id="ctlAltro" placeholder="nome@dominio.it" value="${noto ? '' : esc(ultima)}"/></span></label>
     </div>
+    <p class="small"><button class="help-link" type="button" id="btnInvElenco">Gestisci l’elenco delle CTL</button></p>
     ${lista.length > 1 ? `<p><b>Valutazioni da inviare</b></p><div class="ctl-list">${lista.map(x => `
       <label class="chk"><input type="checkbox" data-inv="${x.item.id}" ${INV.sel.has(x.item.id) ? 'checked' : ''}/>
         <span>${esc(descrizioneElemento(x))}</span></label>`).join('')}</div>`
@@ -1026,6 +1033,7 @@ function apriInvioCTL(lista, preselezione){
   $('#ctlAltro', body).onfocus = () => { $('input[name="ctl"][value=""]', body).checked = true; };
   if($('#btnInvCondividi', body)) $('#btnInvCondividi', body).onclick = () => eseguiInvioCTL(true);
   $('#btnInvMail', body).onclick = () => eseguiInvioCTL(false);
+  $('#btnInvElenco', body).onclick = () => { chiudiSheet(); go('elenchi'); };
 }
 
 async function eseguiInvioCTL(condividi){
@@ -1036,7 +1044,7 @@ async function eseguiInvioCTL(condividi){
   const lista = INV.lista.filter(x => INV.sel.has(x.item.id));
   if(!lista.length){ toast('Seleziona almeno una valutazione'); return; }
   store.set(KEY_CTL, email);
-  const ctl = CTL_DESTINATARI.find(c => c.email === email);
+  const ctl = elencoCTL().find(c => c.email === email);
   const uno = lista.length === 1, x0 = lista[0];
   const nome = uno ? (x0.tipo === 'griglia' ? nomeFile(x0.item) : nomeFilePercorso(x0.item)) : `Classificazione_Baskin_${lista.length}_schede_${stamp()}`;
   const tipi = [...new Set(lista.map(x => x.tipo === 'griglia' ? 'Griglia di valutazione' : 'Percorsi'))].join(' e ');

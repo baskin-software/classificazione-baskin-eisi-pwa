@@ -17,6 +17,7 @@ La stessa guida è integrata nell'app (**Guida all'uso** nella schermata inizial
 - **Nuova sessione** (o **Riprendi sessione** se ce n'è una in corso): avvia una sessione di Griglia o di Percorsi.
 - **Archivio valutazioni**: le griglie e i percorsi confermati.
 - **Testo integrale**: il testo completo dell'Allegato A, con indice.
+- **Squadre e CTL**: gli elenchi delle squadre (con i colori di maglia) e delle CTL (con l'e-mail), anche da CSV.
 - **Guida all'uso**: questa guida.
 - **Informazioni**: versione, aggiornamenti, segnalazioni, privacy.
 - Se ci sono valutazioni confermate **non ancora stampate**, in alto compare un avviso con **Stampa i rimanenti**.
@@ -32,6 +33,7 @@ Toccando la riga della sessione in cima al pannello giocatori si inseriscono **d
 
 ## 👤 Inserimento dei giocatori
 
+- **Squadra**: si scrive o si sceglie dall'elenco (vedi *Squadre e CTL*). Se l'elenco ha **una sola squadra**, il nuovo giocatore la riceve già compilata; nella griglia, scegliendo una squadra dell'elenco, il **colore della maglia** si imposta da solo e sopra la tavolozza compaiono le due maglie della squadra.
 - **Griglia**: **squadra** e **n° maglia** obbligatori.
 - **Percorsi**: basta **cognome e nome**; squadra e n° maglia sono facoltativi. In alternativa al nome servono **squadra e n° maglia**. Senza numero, sul pulsante del giocatore compaiono le **iniziali** di ogni parola, in maiuscolo (es. *Rossi Mario* → **RM**).
 - **Data di nascita**, **sesso**, **Sezione Territoriale** (e nella griglia anche **cognome e nome**): facoltativi; il sesso serve per il Percorso B.
@@ -70,11 +72,25 @@ Toccando la riga della sessione in cima al pannello giocatori si inseriscono **d
 5. Dopo le tre prove l'**esito** indica il ruolo di partenza o il percorso successivo (es. dal Percorso A al Percorso C). Con **Conferma finale** si attivano stampa, HTML e **Invia alla CTL**; il pulsante del **seguito** avvia il percorso successivo per lo stesso giocatore.
 6. **Riapri percorso** permette di correggere; **Cambia percorso** e **Dati del giocatore** sono sempre disponibili prima della conferma.
 
+## 👥 Squadre e CTL
+
+Dalla schermata iniziale, **Squadre e CTL** contiene due elenchi, salvati sul dispositivo:
+
+- **Squadre**: nome e **due colori di maglia** (facoltativi), scelti dalla tavolozza o personalizzati.
+- **CTL**: nome e **indirizzo e-mail** delle Commissioni Tecniche Locali. L'app parte con un elenco predefinito, che si può modificare o **ripristinare**.
+
+Per ogni elenco: **Aggiungi**, **Modifica**, elimina (✕), **Importa CSV**, **Esporta CSV** e **Scarica un modello**. Nel CSV:
+
+- squadre: `nome;colore1;colore2`, con i colori come `#rrggbb` o per nome (rosso, blu, bianco, nero, giallo, verde, azzurro, viola, arancione, grigio, rosa, granata…);
+- CTL: `nome;email`.
+
+Il separatore può essere `;` o `,` e la riga d'intestazione è facoltativa. L'import **aggiunge** le voci nuove e **aggiorna** quelle già presenti (stesso nome di squadra, stesso indirizzo di CTL).
+
 ## ✉️ Invio alla CTL
 
 Il pulsante **Invia alla CTL** si trova nel pannello giocatori (tutte le valutazioni confermate della sessione), nel menu di ogni giocatore confermato e in ogni voce dell'**Archivio**.
 
-1. Scegli la **CTL destinataria** dall'elenco oppure **Altro indirizzo**. L'ultima scelta viene ricordata.
+1. Scegli la **CTL destinataria** dall'elenco oppure **Altro indirizzo**. L'ultima scelta viene ricordata; se l'elenco ha **una sola CTL** è già selezionata. Il collegamento **Gestisci l'elenco delle CTL** porta a *Squadre e CTL*.
 2. Se le valutazioni sono più di una, spunta quelle da inviare: vengono riunite in **un solo file HTML**, una scheda per pagina.
 3. Scegli come inviare:
     - **Invia con allegato** (telefono): si apre la condivisione, scegli l'app di posta. Il file è già allegato e il testo è già scritto; l'indirizzo della CTL è copiato negli appunti e scritto in cima al messaggio: incollalo come destinatario se l'app non lo inserisce.
