@@ -180,7 +180,7 @@ npm run ios         # versione + cap sync + apre Xcode
 
 La versione delle app segue `APP_VERSION`: `26.0b10` diventa versionName `26.0b10`
 e versionCode `2600010` (la `26.0` finale `2600099`, la `26.0.1` `2600199`); su iOS
-`26.0.0`, build `2600010`. Identificativo: `it.uncledan.classificazionebaskin`.
+`26.0.0`, build `2600010`. Identificativo, uguale su Android e iOS: `it.uncledan.classificazionebaskineisi` (senza trattini né underscore, l'unica forma valida su entrambe le piattaforme).
 
 ## Versioni
 
@@ -197,7 +197,7 @@ rilascia `26.0` senza altre modifiche funzionali. Lo stesso vale per i rilasci
 successivi (`26.1b1` → `26.1`).
 
 A ogni build aggiornare insieme `APP_VERSION` in `pwa/js/app.js` e `CACHE_NAME`
-in `pwa/service-worker.js`, con il tag git corrispondente (`v26.0b10`, poi `v26.0`).
+in `pwa/service-worker.js`, con il tag git corrispondente (`v26.0b11`, poi `v26.0`).
 
 ## Pubblicazione su GitHub Pages
 

@@ -1,4 +1,4 @@
-/* seg.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b10 - 2026-11-18 18-51-49 */
+/* seg.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b11 - 2026-11-18 18-57-48 */
 /* =====================================================================
    Display a 7 segmenti in SVG - ripreso dal Tabellone Baskin EISI (PWA)
    (SEG_MAP, buildSegmentPolygons, digitSVG, colonSVG) con l'aggiunta del

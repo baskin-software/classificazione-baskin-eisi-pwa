@@ -1,5 +1,5 @@
-// StampaPlugin.java by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b10 - 2026-11-18 18-51-49
-package it.uncledan.classificazionebaskin;
+// StampaPlugin.java by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b11 - 2026-11-18 18-57-48
+package it.uncledan.classificazionebaskineisi;
 
 import android.content.Context;
 import android.print.PrintAttributes;

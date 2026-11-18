@@ -1,4 +1,4 @@
-package it.uncledan.classificazionebaskin;
+package it.uncledan.classificazionebaskineisi;
 
 import android.os.Bundle;
 
