@@ -28,7 +28,7 @@ Scegli che cosa valutare:
 - **Griglia di valutazione**: abilità in partita, ruoli 3, 4 e 5. Consigliati **fino a 4 giocatori** per sessione.
 - **Percorsi**: percorsi A, B e C con cronometro. Consigliati **fino a 20 giocatori** per sessione.
 
-Toccando la riga della sessione in cima al pannello giocatori si inseriscono **data**, **valutatore** e, per la griglia, la **gara osservata**.
+Toccando la riga della sessione in cima al pannello giocatori si inseriscono **data**, **valutatore** e, per la griglia, la **gara osservata**. Nella griglia la **data di osservazione è obbligatoria** (è già compilata con la data del giorno): senza data la conferma finale non si può fare. Gara e valutatore sono facoltativi.
 
 ## 👤 Inserimento dei giocatori
 

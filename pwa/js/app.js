@@ -1,4 +1,4 @@
-/* app.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b5 - 2026-11-18 13-58-24 */
+/* app.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b6 - 2026-11-18 14-09-46 */
 /* =====================================================================
    Classificazione Baskin EISI (PWA) - logica applicativa
    Autore: Daniele Lolli (UncleDan)
@@ -17,7 +17,7 @@
    ===================================================================== */
 'use strict';
 
-const APP_VERSION = '26.0b5';
+const APP_VERSION = '26.0b6';
 const APP_NAME = 'Classificazione Baskin EISI (PWA)';
 /* numero di giocatori consigliato per sessione: oltre non si propone più
    l'aggiunta automatica, ma si può aggiungere dalla pulsantiera confermando */
@@ -555,6 +555,12 @@ function confermaMalus(){
 function chiediConfermaFinale(){
   const g = cur(), r = calcola(g);
   if(!r.completa) return;
+  if(!S.data){   // nella griglia la data di osservazione è obbligatoria
+    toast('Inserisci la data di osservazione nei dati della sessione');
+    go('sessione');
+    setTimeout(() => { $('#sessInfo').open = true; $('#s_data').focus(); }, 200);
+    return;
+  }
   const avvisoMalus = !g.malusVisto
     ? `<p class="ko small">I malus non sono stati verificati: ${r.hApplicabile ? 'Malus H (altezza inferiore a 155 cm)' : 'Malus A.A.I.I. (protesi/menomazioni agli arti inferiori)'} — se applicabile, annulla e apri la voce Malus.</p>` : '';
   const html = `
