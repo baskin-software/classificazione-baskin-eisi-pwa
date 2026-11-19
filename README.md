@@ -148,11 +148,12 @@ le parti che nella WebView non funzionano:
 | Piattaforma | Workflow | Risultato |
 |---|---|---|
 | Android | `.github/workflows/app-android.yml` (Linux) | APK debug sempre; APK release firmato se ci sono i secret `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD` |
-| iOS | `.github/workflows/app-ios.yml` (macOS) | `.ipa` **non firmato** e build per Simulatore |
+| iOS | `.github/workflows/app-ios.yml` (macOS) | `.ipa` **non firmato** e build per Simulatore — **solo a mano** (Actions → App iOS → Run workflow) finché non c'è un certificato Apple; per la compilazione automatica togliere il commento al blocco `push:` |
 
-A ogni push sul ramo `beta` gli APK e l'`.ipa` finiscono nella pre-release
-**app-beta** (sempre la più recente); con un tag `v*` nella release del tag; ogni
-esecuzione li lascia anche tra gli artifact.
+A ogni push sul ramo `beta` gli APK finiscono nella pre-release **app-beta**
+(sempre la più recente); con un tag `v*` nella release del tag; ogni esecuzione
+li lascia anche tra gli artifact. L'`.ipa`, quando si lancia a mano il workflow
+iOS dal ramo `beta`, si aggiunge alla stessa pre-release.
 
 - **Android**: dal telefono, apri la pre-release *app-beta* e scarica l'APK
   (consenti l'installazione da questa fonte).
@@ -197,7 +198,7 @@ rilascia `26.0` senza altre modifiche funzionali. Lo stesso vale per i rilasci
 successivi (`26.1b1` → `26.1`).
 
 A ogni build aggiornare insieme `APP_VERSION` in `pwa/js/app.js` e `CACHE_NAME`
-in `pwa/service-worker.js`, con il tag git corrispondente (`v26.0b11`, poi `v26.0`).
+in `pwa/service-worker.js`, con il tag git corrispondente (`v26.0b12`, poi `v26.0`).
 
 ## Pubblicazione su GitHub Pages
 

@@ -102,7 +102,7 @@ jobs:
           body: |
             Versione di prova **${{ env.APP_VER }}** dell'app (ramo beta, commit ${{ github.sha }}).
             Android: scarica l'APK e aprilo dal telefono (consenti l'installazione da questa fonte).
-            iOS: vedi il file .ipa non firmato, da installare con un tool di sideload.
+            iOS: compilazione solo manuale (Actions → App iOS → Run workflow), .ipa non firmato.
           files: out/*.apk
 
       - name: Release del tag

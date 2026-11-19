@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# genera-guida.py by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b11 - 2026-11-18 18-57-48
+# genera-guida.py by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b12 - 2026-11-19 07-42-22
 """Rigenera la schermata «Guida all'uso» (scr-guida) di pwa/index.html da
 docs/guida-it.md, così le due copie restano allineate.
 Uso (dalla radice del repository):  python3 tools/genera-guida.py

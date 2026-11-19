@@ -6,20 +6,24 @@
 #   - produce l'app per il Simulatore iOS (per chi ha un Mac).
 # Con un account Apple Developer si aggiungeranno certificato e profilo per
 # TestFlight / App Store.
+#
+# COMPILAZIONE AUTOMATICA DISATTIVATA: finché non c'è un certificato Apple il
+# workflow parte solo a mano (Actions → App iOS → Run workflow). Per riattivarla
+# togliere il commento al blocco «push:» qui sotto.
 name: App iOS
 
 on:
-  push:
-    branches: ["beta", "main"]
-    tags: ["v*"]
-    paths:
-      - "pwa/**"
-      - "ios/**"
-      - "package.json"
-      - "package-lock.json"
-      - "capacitor.config.json"
-      - "tools/versione-app.mjs"
-      - ".github/workflows/app-ios.yml"
+  # push:
+  #   branches: ["beta", "main"]
+  #   tags: ["v*"]
+  #   paths:
+  #     - "pwa/**"
+  #     - "ios/**"
+  #     - "package.json"
+  #     - "package-lock.json"
+  #     - "capacitor.config.json"
+  #     - "tools/versione-app.mjs"
+  #     - ".github/workflows/app-ios.yml"
   workflow_dispatch:
 
 permissions:
