@@ -1,4 +1,4 @@
-/* app.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b12 - 2026-11-19 07-42-22 */
+/* app.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.1b1 - 2026-11-19 07-42-51 */
 /* =====================================================================
    Classificazione Baskin EISI (PWA) - logica applicativa
    Autore: Daniele Lolli (UncleDan)
@@ -17,7 +17,7 @@
    ===================================================================== */
 'use strict';
 
-const APP_VERSION = '26.0b12';
+const APP_VERSION = '26.1b1';
 /* app nativa Android/iOS (Capacitor): stesso codice della PWA, vedi js/nativo.js */
 const NATIVO = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
 const PIATTAFORMA = NATIVO ? window.Capacitor.getPlatform() : 'web';

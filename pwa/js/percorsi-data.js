@@ -1,4 +1,4 @@
-/* percorsi-data.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.0b12 - 2026-11-19 07-42-22 */
+/* percorsi-data.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.1b1 - 2026-11-19 07-42-51 */
 /* =====================================================================
    Classificazione Baskin EISI (PWA) - dati dei percorsi A, B e C
    Tabelle di valutazione e regole di decisione tratte da: Allegato A al
