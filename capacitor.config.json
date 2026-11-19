@@ -1,5 +1,5 @@
 {
-  "appId": "it.uncledan.classificazionebaskineisi",
+  "appId": "io.github.baskinsoftware.classificazionebaskineisi",
   "appName": "Classificazione Baskin",
   "webDir": "pwa",
   "android": {

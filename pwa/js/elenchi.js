@@ -1,4 +1,4 @@
-/* elenchi.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.1b1 - 2026-11-19 07-42-51 */
+/* elenchi.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.1b2 - 2026-11-19 09-18-50 */
 /* =====================================================================
    Classificazione Baskin EISI (PWA) - elenchi di SQUADRE e CTL
    - Squadre: nome + due colori di maglia (facoltativi).
