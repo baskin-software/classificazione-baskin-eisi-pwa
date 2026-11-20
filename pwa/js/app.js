@@ -1,4 +1,4 @@
-/* app.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.1b2 - 2026-11-19 09-18-50 */
+/* app.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.1b3 - 2026-11-20 09-06-46 */
 /* =====================================================================
    Classificazione Baskin EISI (PWA) - logica applicativa
    Autore: Daniele Lolli (UncleDan)
@@ -17,7 +17,7 @@
    ===================================================================== */
 'use strict';
 
-const APP_VERSION = '26.1b2';
+const APP_VERSION = '26.1b3';
 /* app nativa Android/iOS (Capacitor): stesso codice della PWA, vedi js/nativo.js */
 const NATIVO = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
 const PIATTAFORMA = NATIVO ? window.Capacitor.getPlatform() : 'web';
@@ -1122,10 +1122,10 @@ function toast(msg){
   clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2600);
 }
 
-const REPO_ISSUES = 'https://github.com/baskin-software/classificazione-baskin-eisi-pwa/issues/new';
+const REPO_ISSUES = 'https://github.com/baskinsoftware/classificazione-baskin-eisi-pwa/issues/new';
 /* nell'app nativa i link esterni vanno al browser di sistema (Capacitor li intercetta) */
 function apriEsterno(url){ if(NATIVO) location.href = url; else window.open(url, '_blank', 'noopener'); }
-const REPO_RELEASES = 'https://github.com/baskin-software/classificazione-baskin-eisi-pwa/releases';
+const REPO_RELEASES = 'https://github.com/baskinsoftware/classificazione-baskin-eisi-pwa/releases';
 
 function segnalaProblema(){
   if(navigator.onLine === false){ toast('Sei offline: riprova quando sei connesso'); return; }

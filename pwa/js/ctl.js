@@ -1,4 +1,4 @@
-/* ctl.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.1b2 - 2026-11-19 09-18-50 */
+/* ctl.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.1b3 - 2026-11-20 09-06-46 */
 /* =====================================================================
    Classificazione Baskin EISI (PWA) - elenco PREDEFINITO delle CTL
    È l'elenco con cui parte l'app (e quello di «Ripristina l'elenco

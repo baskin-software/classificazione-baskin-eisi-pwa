@@ -181,7 +181,7 @@ npm run ios         # versione + cap sync + apre Xcode
 
 La versione delle app segue `APP_VERSION`: `26.0b10` diventa versionName `26.0b10`
 e versionCode `2600010` (la `26.0` finale `2600099`, la `26.0.1` `2600199`); su iOS
-`26.0.0`, build `2600010`. Identificativo, uguale su Android e iOS: `io.github.baskinsoftware.classificazionebaskineisi`, dal sito dell'organizzazione `baskin-software.github.io` rovesciato (senza trattini né underscore, l'unica forma valida su entrambe le piattaforme).
+`26.0.0`, build `2600010`. Identificativo, uguale su Android e iOS: `io.github.baskinsoftware.classificazionebaskineisi`, cioè il dominio dell'organizzazione `baskinsoftware.github.io` rovesciato più il nome dell'app (senza trattini né underscore, l'unica forma valida su entrambe le piattaforme).
 
 ## Versioni
 
@@ -198,7 +198,7 @@ rilascia `26.0` senza altre modifiche funzionali. Lo stesso vale per i rilasci
 successivi (`26.1b1` → `26.1`).
 
 A ogni build aggiornare insieme `APP_VERSION` in `pwa/js/app.js` e `CACHE_NAME`
-in `pwa/service-worker.js`, con il tag git corrispondente (`v26.1b2`, poi `v26.1`).
+in `pwa/service-worker.js`, con il tag git corrispondente (`v26.1b3`, poi `v26.1`).
 
 ## Pubblicazione su GitHub Pages
 
@@ -223,7 +223,7 @@ pubblicare uno non cancella l'altro. Prima del primo deploy, nel repository:
 ## Segnalazioni
 
 Dall'app, in **Informazioni → Segnala un problema**, si apre una nuova issue su
-<https://github.com/baskin-software/classificazione-baskin-eisi-pwa/issues> con
+<https://github.com/baskinsoftware/classificazione-baskin-eisi-pwa/issues> con
 versione, modalità e browser già compilati (nessun dato dei giocatori).
 
 ## Licenza
