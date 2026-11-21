@@ -40,7 +40,7 @@ Toccando la riga della sessione in cima al pannello giocatori si inseriscono **d
 - **Squadra**: si scrive o si sceglie dall'elenco (vedi *Squadre, CTL e Sezioni*). Se l'elenco ha **una sola squadra**, il nuovo giocatore la riceve già compilata; nella griglia, scegliendo una squadra dell'elenco, il **colore della maglia** si imposta da solo e sopra la tavolozza compaiono le due maglie della squadra.
 - **Griglia**: **squadra** e **n° maglia** obbligatori.
 - **Percorsi**: basta **cognome e nome**; squadra e n° maglia sono facoltativi. In alternativa al nome servono **squadra e n° maglia**. Senza numero, sul pulsante del giocatore compaiono le **iniziali** di ogni parola, in maiuscolo (es. *Rossi Mario* → **RM**).
-- **Data di nascita**, **sesso**, **Sezione Territoriale** (e nella griglia anche **cognome e nome**): facoltativi; il sesso serve per il Percorso B. La Sezione si sceglie da una **tendina** (con **Altra** per scriverla); se l'elenco ha una sola Sezione è già impostata.
+- **Data di nascita**, **sesso**, **Sezione Territoriale** (e nella griglia anche **cognome e nome**): facoltativi; il sesso serve per il Percorso B. La Sezione si sceglie da una **tendina** (con **Altra** per scriverla) ed è già impostata sulla **Sezione predefinita** (all'inizio Emilia-Romagna).
 - Solo nella griglia: **colore della maglia** (8 colori o uno personalizzato) e **ruolo attuale**.
 - Dopo ogni inserimento l'app chiede se **aggiungere un altro giocatore**, finché rispondi *No* o raggiungi il numero consigliato. Oltre quel numero puoi ancora aggiungerne dal pulsante **Aggiungi giocatore**, con una conferma ogni volta.
 
@@ -81,14 +81,18 @@ Toccando la riga della sessione in cima al pannello giocatori si inseriscono **d
 Dalla schermata iniziale, **Squadre, CTL e Sezioni** contiene tre elenchi, salvati sul dispositivo:
 
 - **Squadre**: nome e **due colori di maglia** (facoltativi), scelti dalla tavolozza o personalizzati.
-- **CTL**: una per **Sezione Territoriale**, con nome libero ed **e-mail facoltativa**. Per l'invio si possono scegliere solo le CTL che hanno l'e-mail: l'app parte con l'e-mail della sola CTL Emilia-Romagna, le altre si aggiungono quando ci sono.
+- **CTL**: una per **Sezione Territoriale**, con nome libero ed **e-mail facoltativa**. L'app parte con l'e-mail della sola CTL Emilia-Romagna; le altre si aggiungono quando ci sono. Se all'invio si sceglie una CTL senza e-mail, l'app avvisa.
 - **Sezioni Territoriali**: l'elenco della tendina «Sezione Territoriale» del giocatore (Campania, Emilia-Romagna, Friuli-Venezia Giulia, Lazio, Lombardia Nord, Sud ed Est, Marche, Piemonte e Valle d'Aosta, Puglia, Sicilia, Toscana, Umbria, Veneto). Nella tendina si può sempre scegliere **Altra** e scriverla.
 
-Per ogni elenco: **Aggiungi**, **Modifica**, elimina (✕), **Importa XLSX**, **Esporta XLSX** e **Scarica un modello**; CTL e Sezioni si possono anche **ripristinare** all'elenco predefinito. Nel file XLSX (primo foglio, intestazione facoltativa):
+Per ogni elenco: **Aggiungi**, **Modifica**, elimina (✕), **Importa XLSX**, **Esporta XLSX** e **Scarica un modello**; CTL e Sezioni si possono anche **ripristinare** all'elenco predefinito.
+
+Una **CTL** e una **Sezione** possono essere **predefinite** (★): si imposta toccando la stellina nell'elenco o con la casella *predefinita* nella scheda di modifica. La Sezione predefinita è proposta per ogni nuovo giocatore, la CTL predefinita all'invio. Nell'elenco standard sono predefinite la **Sezione Emilia-Romagna** e la **CTL Emilia-Romagna**. Nel file XLSX (primo foglio, intestazione facoltativa):
 
 - squadre: colonne `nome | colore1 | colore2`, con i colori come `#rrggbb` o per nome (rosso, blu, bianco, nero, giallo, verde, azzurro, viola, arancione, grigio, rosa, granata…);
-- CTL: colonne `nome | email | sezione` (e-mail facoltativa);
-- Sezioni: colonna `nome`.
+- CTL: colonne `nome | email | sezione | predefinita` (e-mail facoltativa);
+- Sezioni: colonne `nome | predefinita`.
+
+Nella colonna `predefinita` basta scrivere **sì** (oppure x, 1, vero) sulla riga da rendere predefinita; se ce n'è più d'una vale la prima.
 
 L'import **aggiunge** le voci nuove e **aggiorna** quelle già presenti (stesso nome). In import si accettano anche i file CSV.
 
@@ -96,7 +100,7 @@ L'import **aggiunge** le voci nuove e **aggiorna** quelle già presenti (stesso 
 
 Il pulsante **Invia alla CTL** si trova nel pannello giocatori (tutte le valutazioni confermate della sessione), nel menu di ogni giocatore confermato e in ogni voce dell'**Archivio**.
 
-1. Scegli la **CTL destinataria** tra quelle che hanno l'e-mail, oppure **Altro indirizzo**. Le CTL senza e-mail sono raccolte a parte e non si possono scegliere. Viene proposta l'ultima CTL usata; altrimenti quella della **Sezione Territoriale** delle valutazioni; altrimenti, se una sola CTL ha l'e-mail, quella. Il collegamento **Gestisci l'elenco delle CTL** porta a *Squadre, CTL e Sezioni*.
+1. Scegli la **CTL destinataria** oppure **Altro indirizzo**. Viene proposta la **CTL predefinita** (★); se non c'è, quella della **Sezione Territoriale** delle valutazioni, poi l'ultima usata. Se la CTL scelta **non ha l'e-mail**, all'invio compare un **avviso**: aggiungila con **Gestisci l'elenco delle CTL** oppure usa *Altro indirizzo*.
 2. Se le valutazioni sono più di una, spunta quelle da inviare: vengono riunite in **un solo file HTML**, una scheda per pagina.
 3. Scegli come inviare:
     - **Invia con allegato** (telefono): si apre la condivisione, scegli l'app di posta. Il file è già allegato e il testo è già scritto; l'indirizzo della CTL è copiato negli appunti e scritto in cima al messaggio: incollalo come destinatario se l'app non lo inserisce.

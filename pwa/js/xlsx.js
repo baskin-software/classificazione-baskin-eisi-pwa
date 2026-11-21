@@ -1,4 +1,4 @@
-/* xlsx.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.1b4 - 2026-11-21 08-28-34 */
+/* xlsx.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.1b5 - 2026-11-21 08-42-58 */
 /* =====================================================================
    Classificazione Baskin EISI (PWA) - lettura e scrittura XLSX minimale,
    senza librerie e offline.

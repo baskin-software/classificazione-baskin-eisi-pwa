@@ -113,22 +113,25 @@ Nella schermata **Squadre, CTL e Sezioni** ogni utente gestisce sul proprio disp
 
 - l'elenco delle **squadre**, con nome e due colori di maglia;
 - l'elenco delle **CTL**, una per Sezione Territoriale, con nome libero ed e-mail
-  facoltativa (per «Invia alla CTL» si possono scegliere solo quelle con l'e-mail);
+  facoltativa (se all'invio si sceglie una CTL senza e-mail, l'app avvisa);
 - l'elenco delle **Sezioni Territoriali**, usato dalla tendina del giocatore.
 
-Con una sola voce in elenco, la squadra, la Sezione o la CTL (con e-mail) viene
-proposta in automatico, modificabile. Tutti gli elenchi si importano ed esportano
+Una CTL e una Sezione possono essere **predefinite** (stellina nell'elenco,
+casella nella scheda, colonna `predefinita` in Excel): la Sezione è proposta per
+i nuovi giocatori, la CTL all'invio. Con una sola squadra in elenco, la squadra
+viene proposta in automatico, modificabile. Tutti gli elenchi si importano ed esportano
 in **XLSX** (primo foglio, intestazione facoltativa; in import anche CSV), con
 lettura e scrittura in JavaScript senza librerie (`pwa/js/xlsx.js`):
 
 | Elenco | Colonne |
 |---|---|
 | Squadre | `nome` · `colore1` · `colore2` (colori `#rrggbb` o per nome: rosso, blu, bianco…) |
-| CTL | `nome` · `email` (facoltativa) · `sezione` |
-| Sezioni | `nome` |
+| CTL | `nome` · `email` (facoltativa) · `sezione` · `predefinita` (sì / x / 1) |
+| Sezioni | `nome` · `predefinita` (sì / x / 1) |
 
-Gli elenchi **predefiniti** (le 14 Sezioni Territoriali e una CTL per Sezione,
-con l'e-mail della sola CTL Emilia-Romagna) sono in `pwa/js/ctl.js`.
+Gli elenchi **standard** (le 14 Sezioni Territoriali e una CTL per Sezione,
+con l'e-mail della sola CTL Emilia-Romagna; Sezione e CTL predefinite:
+Emilia-Romagna) sono in `pwa/js/ctl.js`.
 
 ## App Android e iOS (sperimentale)
 
@@ -196,7 +199,7 @@ rilascia `26.0` senza altre modifiche funzionali. Lo stesso vale per i rilasci
 successivi (`26.1b1` → `26.1`).
 
 A ogni build aggiornare insieme `APP_VERSION` in `pwa/js/app.js` e `CACHE_NAME`
-in `pwa/service-worker.js`, con il tag git corrispondente (`v26.1b4`, poi `v26.1`).
+in `pwa/service-worker.js`, con il tag git corrispondente (`v26.1b5`, poi `v26.1`).
 
 ## Pubblicazione su GitHub Pages
 

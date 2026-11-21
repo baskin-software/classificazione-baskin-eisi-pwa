@@ -1,4 +1,4 @@
-/* app.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.1b4 - 2026-11-21 08-28-34 */
+/* app.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.1b5 - 2026-11-21 08-42-58 */
 /* =====================================================================
    Classificazione Baskin EISI (PWA) - logica applicativa
    Autore: Daniele Lolli (UncleDan)
@@ -17,7 +17,7 @@
    ===================================================================== */
 'use strict';
 
-const APP_VERSION = '26.1b4';
+const APP_VERSION = '26.1b5';
 /* app nativa Android/iOS (Capacitor): stesso codice della PWA, vedi js/nativo.js */
 const NATIVO = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
 const PIATTAFORMA = NATIVO ? window.Capacitor.getPlatform() : 'web';
@@ -999,29 +999,28 @@ ${lista.map(x => htmlElemento(x, LOGO_BASKIN, LOGO_EISI)).join('\n')}
 function apriInvioCTL(lista, preselezione){
   if(!lista.length){ toast('Nessuna valutazione confermata da inviare'); return; }
   INV = { lista, sel: new Set(preselezione || lista.map(x => x.item.id)) };
-  const elenco = elencoCTL(), conEmail = elenco.filter(ctlConEmail), senza = elenco.filter(c => !ctlConEmail(c));
-  /* preselezione, solo tra le CTL che hanno l'e-mail: l'ultima usata; altrimenti
-     quella della Sezione Territoriale delle valutazioni; altrimenti, se è una sola, quella */
-  const usata = store.get(KEY_CTL, '');
+  const elenco = elencoCTL();
+  /* preselezione: la CTL predefinita; altrimenti quella della Sezione Territoriale
+     delle valutazioni; altrimenti l'ultima usata; altrimenti, se è una sola, quella.
+     Le CTL senza e-mail si possono scegliere: l'avviso arriva all'invio. */
+  const usata = store.get(KEY_CTL, '');            // «ctl:<nome>» oppure un indirizzo libero
   const sezioni = [...new Set(lista.map(x => x.item.dati.sezione).filter(Boolean))];
-  const perSezione = sezioni.length === 1 ? conEmail.find(c => c.sezione === sezioni[0]) : null;
-  let ultima = conEmail.some(c => c.email === usata) ? usata
-    : perSezione ? perSezione.email
-    : usata ? usata                                    // indirizzo libero usato l'ultima volta
-    : conEmail.length === 1 ? conEmail[0].email : '';
-  const noto = !ultima || conEmail.some(c => c.email === ultima);
+  const idx = f => elenco.findIndex(f);
+  let scelta = idx(c => c.predefinita);
+  if(scelta < 0 && sezioni.length === 1) scelta = idx(c => c.sezione === sezioni[0]);
+  if(scelta < 0 && usata.startsWith('ctl:')) scelta = idx(c => 'ctl:' + c.nome === usata);
+  if(scelta < 0 && elenco.length === 1) scelta = 0;
+  const altro = scelta < 0 && usata && !usata.startsWith('ctl:') ? usata : '';
   const fileOk = !!(navigator.canShare && window.File && navigator.canShare({ files: [new File(['x'], 'x.html', { type:'text/html' })] }));
   const html = `
     <p><b>Destinatario</b></p>
-    <div class="ctl-list">${conEmail.map(c => `
-      <label class="chk"><input type="radio" name="ctl" value="${esc(c.email)}" ${c.email === ultima ? 'checked' : ''}/>
-        <span><b>${esc(c.nome)}</b><small>${esc(c.email)}</small></span></label>`).join('')}
-      <label class="chk"><input type="radio" name="ctl" value="__altro" ${noto ? '' : 'checked'}/>
-        <span><b>Altro indirizzo</b><input type="email" id="ctlAltro" placeholder="nome@dominio.it" value="${noto ? '' : esc(ultima)}"/></span></label>
+    <div class="ctl-list ctl-scroll">${elenco.map((c, k) => `
+      <label class="chk"><input type="radio" name="ctl" value="${k}" ${k === scelta ? 'checked' : ''}/>
+        <span><b>${esc(c.nome)}${c.predefinita ? ' &#9733;' : ''}</b><small>${ctlConEmail(c) ? esc(c.email) : '<i>e-mail non impostata</i>'}</small></span></label>`).join('')}
+      <label class="chk"><input type="radio" name="ctl" value="__altro" ${altro ? 'checked' : ''}/>
+        <span><b>Altro indirizzo</b><input type="email" id="ctlAltro" placeholder="nome@dominio.it" value="${esc(altro)}"/></span></label>
     </div>
-    ${senza.length ? `<details class="ctl-senza"><summary class="small">CTL senza e-mail (${senza.length}): non si possono scegliere</summary>
-      <div class="ctl-list">${senza.map(c => `<label class="chk disab"><input type="radio" disabled/><span><b>${esc(c.nome)}</b><small>e-mail non impostata</small></span></label>`).join('')}</div>
-      <p class="small muted">Aggiungi l’e-mail in «Gestisci l’elenco delle CTL», oppure usa «Altro indirizzo».</p></details>` : ''}
+    <p class="small" id="ctlAvviso" hidden></p>
     <p class="small"><button class="help-link" type="button" id="btnInvElenco">Gestisci l’elenco delle CTL</button></p>
     ${lista.length > 1 ? `<p><b>Valutazioni da inviare</b></p><div class="ctl-list">${lista.map(x => `
       <label class="chk"><input type="checkbox" data-inv="${x.item.id}" ${INV.sel.has(x.item.id) ? 'checked' : ''}/>
@@ -1041,6 +1040,7 @@ function apriInvioCTL(lista, preselezione){
     const c = e.target.closest('[data-inv]');
     if(c){ c.checked ? INV.sel.add(c.dataset.inv) : INV.sel.delete(c.dataset.inv); }
     if(e.target.id === 'ctlAltro') $('input[name="ctl"][value="__altro"]', body).checked = true;
+    if(e.target.name === 'ctl') $('#ctlAvviso', body).hidden = true;
   };
   $('#ctlAltro', body).onfocus = () => { $('input[name="ctl"][value="__altro"]', body).checked = true; };
   if($('#btnInvCondividi', body)) $('#btnInvCondividi', body).onclick = () => eseguiInvioCTL(true);
@@ -1051,12 +1051,21 @@ function apriInvioCTL(lista, preselezione){
 async function eseguiInvioCTL(condividi){
   const body = $('#sheetBody');
   const r = $('input[name="ctl"]:checked', body);
-  const email = r && r.value !== '__altro' ? r.value : $('#ctlAltro', body).value.trim();
-  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ toast('Scegli la CTL o scrivi un indirizzo valido'); return; }
+  if(!r){ toast('Scegli la CTL o scrivi un indirizzo'); return; }
+  const scelta = r.value === '__altro' ? null : elencoCTL()[+r.value];
+  const email = scelta ? String(scelta.email || '').trim() : $('#ctlAltro', body).value.trim();
+  if(scelta && !email){   // avviso: la CTL scelta non ha l'e-mail
+    const a = $('#ctlAvviso', body);
+    a.innerHTML = `&#9888; <b>${esc(scelta.nome)}</b> non ha un indirizzo e-mail. Aggiungilo in «Gestisci l’elenco delle CTL», oppure scegli «Altro indirizzo» e scrivilo.`;
+    a.hidden = false; a.scrollIntoView({ block: 'nearest' });
+    toast(`${scelta.nome}: e-mail non impostata`);
+    return;
+  }
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ toast(scelta ? `L’e-mail di ${scelta.nome} non è valida: correggila nell’elenco CTL` : 'Scrivi un indirizzo e-mail valido'); return; }
   const lista = INV.lista.filter(x => INV.sel.has(x.item.id));
   if(!lista.length){ toast('Seleziona almeno una valutazione'); return; }
-  store.set(KEY_CTL, email);
-  const ctl = elencoCTL().find(c => c.email === email);
+  store.set(KEY_CTL, scelta ? 'ctl:' + scelta.nome : email);
+  const ctl = scelta;
   const uno = lista.length === 1, x0 = lista[0];
   const nome = uno ? (x0.tipo === 'griglia' ? nomeFile(x0.item) : nomeFilePercorso(x0.item)) : `Classificazione_Baskin_${lista.length}_schede_${stamp()}`;
   const tipi = [...new Set(lista.map(x => x.tipo === 'griglia' ? 'Griglia di valutazione' : 'Percorsi'))].join(' e ');

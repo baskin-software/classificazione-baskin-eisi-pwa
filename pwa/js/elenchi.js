@@ -1,4 +1,4 @@
-/* elenchi.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.1b4 - 2026-11-21 08-28-34 */
+/* elenchi.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.1b5 - 2026-11-21 08-42-58 */
 /* =====================================================================
    Classificazione Baskin EISI (PWA) - elenchi di SQUADRE, CTL e SEZIONI
    - Squadre: nome + due colori di maglia (facoltativi).
@@ -8,15 +8,20 @@
    - Sezioni Territoriali: tendina nel modulo del giocatore (con «Altra…»);
      al primo uso parte da SEZIONI_TERRITORIALI (ctl.js).
    - Se un elenco ha una sola voce, viene proposta in automatico (modificabile).
+   - Una CTL e una Sezione possono essere «predefinite» (stellina nell'elenco,
+     casella nella scheda, colonna «predefinita» in Excel): la Sezione è
+     proposta nel modulo del giocatore, la CTL all'invio.
    - Import/export XLSX (primo foglio, intestazione facoltativa; in import
      si accettano anche i CSV):
      Squadre: nome | colore1 | colore2   (colori #rrggbb, #rgb o nome: rosso, blu…)
-     CTL:     nome | email | sezione
-     Sezioni: nome
+     CTL:     nome | email | sezione | predefinita
+     Sezioni: nome | predefinita          (predefinita: sì / x / 1 / vero)
    ===================================================================== */
 const KEY_SQUADRE = 'classificazione-baskin-eisi-squadre';
 const KEY_CTL_ELENCO = 'classificazione-baskin-eisi-ctl-elenco-v2';   // v2: CTL per Sezione, e-mail facoltativa
 const KEY_SEZIONI = 'classificazione-baskin-eisi-sezioni';
+const KEY_SEZIONE_DEF = 'classificazione-baskin-eisi-sezione-predefinita';
+const vero = v => /^(s[iì]|x|1|vero|true|yes|y|\*|predefinita)$/i.test(String(v ?? '').trim());
 
 const NOMI_COLORI = {
   bianco:'#ffffff', bianca:'#ffffff', nero:'#000000', nera:'#000000', rosso:'#ff2b2b', rossa:'#ff2b2b',
@@ -45,6 +50,17 @@ function elencoSezioni(){
   return Array.isArray(l) ? l : (typeof SEZIONI_TERRITORIALI !== 'undefined' ? SEZIONI_TERRITORIALI.slice() : []);
 }
 const salvaSezioni = l => store.set(KEY_SEZIONI, l);
+/* Sezione predefinita: quella scelta dall'utente, altrimenti quella standard (ctl.js) */
+function sezionePredefinita(){
+  const v = store.get(KEY_SEZIONE_DEF, null), l = elencoSezioni();
+  const d = v === null ? (typeof SEZIONE_PREDEFINITA !== 'undefined' ? SEZIONE_PREDEFINITA : '') : v;
+  return l.includes(d) ? d : '';
+}
+const impostaSezionePredefinita = nome => store.set(KEY_SEZIONE_DEF, nome || '');
+const ctlPredefinita = () => elencoCTL().find(c => c.predefinita) || null;
+/* una sola CTL predefinita: imposta i (o nessuna con -1) */
+function impostaCtlPredefinita(l, i){ l.forEach((c, k) => { c.predefinita = k === i; }); return l; }
+const stella = (on, el, i) => `<button class="btn sm stella ${on ? 'on' : ''}" type="button" data-el="${el}" data-i="${i}" aria-pressed="${on}" title="${on ? 'Predefinita: tocca per toglierla' : 'Imposta come predefinita'}">${on ? '&#9733;' : '&#9734;'}</button>`;
 const ctlConEmail = c => !!(c && emailValida(c.email));
 const trovaSquadra = nome => { const n = String(nome || '').trim().toLowerCase(); return n ? elencoSquadre().find(s => s.nome.toLowerCase() === n) : null; };
 var emailValida = e => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(e || '').trim());
@@ -109,28 +125,31 @@ function importaSquadre(tutte){
 }
 function importaCtl(tutte){
   const [righe, base] = righeConBase(tutte, ['nome', 'ctl', 'email', 'mail', 'indirizzo', 'sezione']);
-  const l = elencoCTL(); let nuove = 0, agg = 0; const scarti = [];
+  const l = elencoCTL(); let nuove = 0, agg = 0, def = null; const scarti = [];
   righe.forEach((r, i) => {
-    let [nome = '', email = '', sezione = ''] = r.map(x => String(x || '').trim());
+    let [nome = '', email = '', sezione = '', pred = ''] = r.map(x => String(x || '').trim());
     if(emailValida(nome) && !emailValida(email)){ [nome, email] = [email, nome]; }   // anche «email | nome»
     if(email && !emailValida(email)){ scarti.push(i + base); email = ''; }           // e-mail non valida: la CTL entra senza
     if(!nome) nome = email || (sezione ? 'CTL ' + nomeSezione(sezione) : '');
     if(!nome){ scarti.push(i + base); return; }
-    const v = { nome, email, sezione: sezione.toUpperCase() };
-    const k = l.findIndex(c => c.nome.toLowerCase() === nome.toLowerCase());
-    if(k >= 0){ l[k] = v; agg++; } else { l.push(v); nuove++; }
+    const k0 = l.findIndex(c => c.nome.toLowerCase() === nome.toLowerCase());
+    const v = { nome, email, sezione: sezione.toUpperCase(), predefinita: k0 >= 0 ? !!l[k0].predefinita : false };
+    if(k0 >= 0){ l[k0] = v; agg++; } else { l.push(v); nuove++; }
+    if(def === null && vero(pred)) def = nome.toLowerCase();   // la prima marcata vince
   });
+  if(def !== null) impostaCtlPredefinita(l, l.findIndex(c => c.nome.toLowerCase() === def));
   salvaCTL(l); renderElenchi();
   toast(`CTL aggiunte: ${nuove}, aggiornate: ${agg}` + (scarti.length ? ` · righe da controllare (nome mancante o e-mail non valida): ${scarti.join(', ')}` : ''));
 }
 function importaSezioni(tutte){
   const [righe, base] = righeConBase(tutte, ['nome', 'sezione', 'sezioneterritoriale', 'st']);
-  const l = elencoSezioni(); let nuove = 0;
+  const l = elencoSezioni(); let nuove = 0, def = null;
   righe.forEach(r => {
     const nome = String(r[0] || '').trim().toUpperCase(); if(!nome) return;
     if(!l.includes(nome)){ l.push(nome); nuove++; }
+    if(def === null && vero(r[1])) def = nome;
   });
-  salvaSezioni(l); renderElenchi();
+  salvaSezioni(l); if(def !== null) impostaSezionePredefinita(def); renderElenchi();
   toast(`Sezioni aggiunte: ${nuove} (quelle già presenti restano)`);
 }
 
@@ -147,14 +166,14 @@ function renderElenchi(){
     : '<li class="muted small">Nessuna squadra: aggiungile qui o importale da XLSX.</li>';
   $('#elCtlN').textContent = ctl.length;
   $('#elCtl').innerHTML = ctl.length ? ctl.map((c, i) => `
-    <li class="el-row"><span class="el-t"><b>${esc(c.nome)}</b><small>${ctlConEmail(c) ? esc(c.email) : '<i>senza e-mail: non si può inviare</i>'}${c.sezione ? ' · ' + esc(c.sezione) : ''}</small></span>
+    <li class="el-row">${stella(!!c.predefinita, 'ctl-def', i)}<span class="el-t"><b>${esc(c.nome)}</b><small>${ctlConEmail(c) ? esc(c.email) : '<i>e-mail non impostata</i>'}${c.sezione ? ' · ' + esc(c.sezione) : ''}${c.predefinita ? ' · <b>predefinita</b>' : ''}</small></span>
       <button class="btn sm" type="button" data-el="ctl-mod" data-i="${i}">Modifica</button>
       <button class="btn sm" type="button" data-el="ctl-del" data-i="${i}" aria-label="Elimina">&#10005;</button></li>`).join('')
     : '<li class="muted small">Nessuna CTL: aggiungila qui o importala da XLSX.</li>';
-  const st = elencoSezioni();
+  const st = elencoSezioni(), stDef = sezionePredefinita();
   $('#elStN').textContent = st.length;
   $('#elSt').innerHTML = st.length ? st.map((x, i) => `
-    <li class="el-row"><span class="el-t"><b>${esc(x)}</b></span>
+    <li class="el-row">${stella(x === stDef, 'st-def', i)}<span class="el-t"><b>${esc(x)}</b>${x === stDef ? '<small><b>predefinita</b></small>' : ''}</span>
       <button class="btn sm" type="button" data-el="st-mod" data-i="${i}">Modifica</button>
       <button class="btn sm" type="button" data-el="st-del" data-i="${i}" aria-label="Elimina">&#10005;</button></li>`).join('')
     : '<li class="muted small">Nessuna Sezione: aggiungile qui o importale da XLSX.</li>';
@@ -210,7 +229,8 @@ function modificaCtl(i){
     <label class="fld"><span>Nome <b class="req">*</b></span><input id="elCtlNome" type="text" value="${esc(c.nome)}" placeholder="CTL Emilia-Romagna" /></label>
     <label class="fld"><span>E-mail</span><input id="elCtlMail" type="email" value="${esc(c.email || '')}" placeholder="ctl.sezione@eisi.it" /></label>
     <label class="fld"><span>Sezione Territoriale</span><select id="elCtlSez">${opzioniSezioni(c.sezione)}</select></label>
-    <p class="small muted">L’e-mail è facoltativa: una CTL senza e-mail resta in elenco ma non si può scegliere per l’invio.</p>
+    <label class="chk"><input type="checkbox" id="elCtlDef" ${c.predefinita ? 'checked' : ''}/><span>CTL predefinita (proposta per l’invio)</span></label>
+    <p class="small muted">L’e-mail è facoltativa: se manca, all’invio l’app avvisa e chiede di aggiungerla o di usare un altro indirizzo.</p>
     <div class="actions"><button class="btn btn-pri" type="button" id="elCtlSalva">Salva</button></div>` }]);
   $('#elCtlSalva').onclick = () => {
     const nome = $('#elCtlNome').value.trim(), email = $('#elCtlMail').value.trim(), sezione = $('#elCtlSez').value;
@@ -219,8 +239,11 @@ function modificaCtl(i){
     const l = elencoCTL();
     const dup = l.findIndex(x => x.nome.toLowerCase() === nome.toLowerCase());
     if(dup >= 0 && dup !== i) return toast('Una CTL con questo nome è già nell’elenco');
-    const v = { nome, email, sezione };
+    const def = $('#elCtlDef').checked;
+    const v = { nome, email, sezione, predefinita: false };
     if(i >= 0) l[i] = v; else l.push(v);
+    const k = i >= 0 ? i : l.length - 1;
+    if(def) impostaCtlPredefinita(l, k);
     salvaCTL(l); chiudiSheet(); renderElenchi(); toast('CTL salvata');
   };
   setTimeout(() => $('#elCtlNome').focus(), 80);
@@ -229,16 +252,20 @@ function modificaSezione(i){
   const v = i >= 0 ? elencoSezioni()[i] : '';
   apriSheet(i >= 0 ? 'Modifica Sezione' : 'Nuova Sezione', [{ nome:'Sezione', html:`
     <label class="fld"><span>Sezione Territoriale <b class="req">*</b></span><input id="elStNome" type="text" value="${esc(v)}" placeholder="EMILIA-ROMAGNA" /></label>
+    <label class="chk"><input type="checkbox" id="elStDef" ${v && v === sezionePredefinita() ? 'checked' : ''}/><span>Sezione predefinita (proposta per i nuovi giocatori)</span></label>
     <div class="actions"><button class="btn btn-pri" type="button" id="elStSalva">Salva</button></div>` }]);
   $('#elStSalva').onclick = () => {
     const nome = $('#elStNome').value.trim().toUpperCase(); if(!nome) return toast('Inserisci il nome della Sezione');
     const l = elencoSezioni(), dup = l.indexOf(nome);
     if(dup >= 0 && dup !== i) return toast('Questa Sezione è già nell’elenco');
+    const eraDef = v && v === sezionePredefinita();
     if(i >= 0){
       l[i] = nome;
       const ctl = elencoCTL(); ctl.forEach(c => { if(c.sezione === v) c.sezione = nome; }); salvaCTL(ctl);   // segue il nuovo nome
     } else l.push(nome);
-    salvaSezioni(l); chiudiSheet(); renderElenchi(); toast('Sezione salvata');
+    salvaSezioni(l);
+    if($('#elStDef').checked) impostaSezionePredefinita(nome); else if(eraDef) impostaSezionePredefinita('');
+    chiudiSheet(); renderElenchi(); toast('Sezione salvata');
   };
   setTimeout(() => $('#elStNome').focus(), 80);
 }
@@ -256,16 +283,18 @@ function elenchiClick(t){
   else if(a === 'ctl-mod') modificaCtl(i);
   else if(a === 'ctl-del'){ const l = elencoCTL(); if(confirm(`Eliminare ${l[i].nome} dall’elenco?`)){ l.splice(i, 1); salvaCTL(l); renderElenchi(); } }
   else if(a === 'ctl-imp') apriTabella(importaCtl);
-  else if(a === 'ctl-exp') scaricaTabella(`CTL_Baskin_${stamp()}.xlsx`, 'CTL', ['nome', 'email', 'sezione'], elencoCTL().map(c => [c.nome, c.email || '', c.sezione || '']));
-  else if(a === 'ctl-mod-x') scaricaTabella('Modello_CTL.xlsx', 'CTL', ['nome', 'email', 'sezione'], [['CTL Esempio', 'ctl.esempio@eisi.it', 'EMILIA-ROMAGNA'], ['CTL senza e-mail', '', 'TOSCANA']]);
+  else if(a === 'ctl-exp') scaricaTabella(`CTL_Baskin_${stamp()}.xlsx`, 'CTL', ['nome', 'email', 'sezione', 'predefinita'], elencoCTL().map(c => [c.nome, c.email || '', c.sezione || '', c.predefinita ? 'sì' : '']));
+  else if(a === 'ctl-mod-x') scaricaTabella('Modello_CTL.xlsx', 'CTL', ['nome', 'email', 'sezione', 'predefinita'], [['CTL Esempio', 'ctl.esempio@eisi.it', 'EMILIA-ROMAGNA', 'sì'], ['CTL senza e-mail', '', 'TOSCANA', '']]);
+  else if(a === 'ctl-def'){ const l = elencoCTL(); impostaCtlPredefinita(l, l[i].predefinita ? -1 : i); salvaCTL(l); renderElenchi(); }
   else if(a === 'ctl-ripr'){ if(confirm('Ripristinare l’elenco CTL predefinito dell’app? Le CTL aggiunte andranno perse.')){ store.set(KEY_CTL_ELENCO, null); renderElenchi(); } }
   else if(a === 'st-add') modificaSezione(-1);
   else if(a === 'st-mod') modificaSezione(i);
   else if(a === 'st-del'){ const l = elencoSezioni(); if(confirm(`Eliminare la Sezione ${l[i]} dall’elenco?`)){ l.splice(i, 1); salvaSezioni(l); renderElenchi(); } }
   else if(a === 'st-imp') apriTabella(importaSezioni);
-  else if(a === 'st-exp') scaricaTabella(`Sezioni_Territoriali_${stamp()}.xlsx`, 'Sezioni', ['nome'], elencoSezioni().map(x => [x]));
-  else if(a === 'st-mod-x') scaricaTabella('Modello_sezioni.xlsx', 'Sezioni', ['nome'], [['EMILIA-ROMAGNA'], ['TOSCANA']]);
-  else if(a === 'st-ripr'){ if(confirm('Ripristinare l’elenco predefinito delle Sezioni Territoriali?')){ store.set(KEY_SEZIONI, null); renderElenchi(); } }
+  else if(a === 'st-exp'){ const d = sezionePredefinita(); scaricaTabella(`Sezioni_Territoriali_${stamp()}.xlsx`, 'Sezioni', ['nome', 'predefinita'], elencoSezioni().map(x => [x, x === d ? 'sì' : ''])); }
+  else if(a === 'st-mod-x') scaricaTabella('Modello_sezioni.xlsx', 'Sezioni', ['nome', 'predefinita'], [['EMILIA-ROMAGNA', 'sì'], ['TOSCANA', '']]);
+  else if(a === 'st-ripr'){ if(confirm('Ripristinare l’elenco predefinito delle Sezioni Territoriali (e la Sezione predefinita)?')){ store.set(KEY_SEZIONI, null); store.set(KEY_SEZIONE_DEF, null); renderElenchi(); } }
+  else if(a === 'st-def'){ const x = elencoSezioni()[i]; impostaSezionePredefinita(x === sezionePredefinita() ? '' : x); renderElenchi(); }
   return true;
 }
 
@@ -287,7 +316,7 @@ function sezioneIdent(){
   const sel = $('#p_sezione_sel'), inp = $('#p_sezione'); if(!sel || !inp) return;
   const v = inp.value.trim(), l = elencoSezioni();
   sel.innerHTML = opzioniSezioni('', '— nessuna —').replace(/ selected/g, '') + '<option value="__altra">Altra (scrivi)…</option>';
-  if(!v){ sel.value = l.length === 1 ? l[0] : ''; if(l.length === 1) inp.value = l[0]; inp.hidden = true; }
+  if(!v){ const d = sezionePredefinita() || (l.length === 1 ? l[0] : ''); sel.value = d; inp.value = d; inp.hidden = true; }
   else if(l.includes(v)){ sel.value = v; inp.hidden = true; }
   else { sel.value = '__altra'; inp.hidden = false; }
 }

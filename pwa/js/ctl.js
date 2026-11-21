@@ -1,4 +1,4 @@
-/* ctl.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.1b4 - 2026-11-21 08-28-34 */
+/* ctl.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.1b5 - 2026-11-21 08-42-58 */
 /* =====================================================================
    Classificazione Baskin EISI (PWA) - elenchi PREDEFINITI
    Sono gli elenchi con cui parte l'app (e quelli di «Ripristina l'elenco
@@ -15,6 +15,10 @@ const SEZIONI_TERRITORIALI = [
   "PIEMONTE E VALLE D'AOSTA", 'PUGLIA', 'SICILIA', 'TOSCANA', 'UMBRIA', 'VENETO'
 ];
 
+/* Sezione Territoriale predefinita (proposta nel modulo del giocatore) e,
+   di conseguenza, CTL predefinita (proposta per «Invia alla CTL») */
+const SEZIONE_PREDEFINITA = 'EMILIA-ROMAGNA';
+
 /* Una CTL per Sezione Territoriale; l'e-mail si aggiunge quando c'è */
 const EMAIL_CTL = {
   'EMILIA-ROMAGNA': 'ctl.emiliaromagna@eisi.it'
@@ -24,5 +28,5 @@ const nomeSezione = s => String(s).toLowerCase()
   .replace(/(^|[\s-])(\p{L})/gu, (m, a, b) => a + b.toUpperCase())
   .replace(/ E /g, ' e ').replace(/ D'(\p{L})/gu, (m, b) => " d'" + b.toUpperCase());
 const CTL_DESTINATARI = SEZIONI_TERRITORIALI.map(s => ({
-  nome: 'CTL ' + nomeSezione(s), email: EMAIL_CTL[s] || '', sezione: s
+  nome: 'CTL ' + nomeSezione(s), email: EMAIL_CTL[s] || '', sezione: s, predefinita: s === SEZIONE_PREDEFINITA
 }));
