@@ -84,8 +84,9 @@ pwa/
   css/styles.css
   js/data.js              testi della griglia, forma estesa, legenda, malus
   js/logos.js             loghi SVG come data URI (per l'export HTML)
-  js/ctl.js               elenco predefinito delle CTL
-  js/elenchi.js           elenchi squadre e CTL, import/export CSV
+  js/ctl.js               elenchi predefiniti di Sezioni Territoriali e CTL
+  js/elenchi.js           elenchi squadre, CTL e Sezioni, import/export XLSX
+  js/xlsx.js              lettura/scrittura XLSX senza librerie
   js/app.js               logica (griglia, archivio, stampa, invio alla CTL)
   js/seg.js               display a 7 segmenti (dal Tabellone)
   js/percorsi-data.js     tabelle di valutazione dei percorsi
@@ -106,31 +107,28 @@ disponibile offline. Le due copie devono restare allineate: dopo aver modificato
 markdown, `python3 tools/genera-guida.py` rigenera la schermata `scr-guida` di
 `pwa/index.html`.
 
-## Squadre e CTL
+## Squadre, CTL e Sezioni
 
-Nella schermata **Squadre e CTL** ogni utente gestisce sul proprio dispositivo:
+Nella schermata **Squadre, CTL e Sezioni** ogni utente gestisce sul proprio dispositivo:
 
 - l'elenco delle **squadre**, con nome e due colori di maglia;
-- l'elenco delle **CTL** con l'indirizzo e-mail per «Invia alla CTL».
+- l'elenco delle **CTL**, una per Sezione Territoriale, con nome libero ed e-mail
+  facoltativa (per «Invia alla CTL» si possono scegliere solo quelle con l'e-mail);
+- l'elenco delle **Sezioni Territoriali**, usato dalla tendina del giocatore.
 
-Con una sola voce in elenco, la squadra o la CTL viene proposta in automatico
-(modificabile). Entrambi gli elenchi si importano ed esportano in **CSV**
-(separatore `;` o `,`, intestazione facoltativa):
+Con una sola voce in elenco, la squadra, la Sezione o la CTL (con e-mail) viene
+proposta in automatico, modificabile. Tutti gli elenchi si importano ed esportano
+in **XLSX** (primo foglio, intestazione facoltativa; in import anche CSV), con
+lettura e scrittura in JavaScript senza librerie (`pwa/js/xlsx.js`):
 
-```csv
-nome;colore1;colore2
-Baskin Esempio;rosso;bianco
-Altra Squadra;#2962ff;#ffe000
-```
+| Elenco | Colonne |
+|---|---|
+| Squadre | `nome` · `colore1` · `colore2` (colori `#rrggbb` o per nome: rosso, blu, bianco…) |
+| CTL | `nome` · `email` (facoltativa) · `sezione` |
+| Sezioni | `nome` |
 
-```csv
-nome;email
-CTL Emilia-Romagna;ctl.emiliaromagna@eisi.it
-```
-
-I colori si scrivono come `#rrggbb` o per nome (rosso, blu, bianco, nero, giallo,
-verde, azzurro, viola, arancione, grigio, rosa, granata…). L'elenco CTL
-**predefinito**, con cui parte l'app, è in `pwa/js/ctl.js` (`CTL_DESTINATARI`).
+Gli elenchi **predefiniti** (le 14 Sezioni Territoriali e una CTL per Sezione,
+con l'e-mail della sola CTL Emilia-Romagna) sono in `pwa/js/ctl.js`.
 
 ## App Android e iOS (sperimentale)
 
@@ -141,7 +139,7 @@ le parti che nella WebView non funzionano:
 
 - **stampa** con il plugin locale `Stampa` (Android `PrintManager`, iOS
   `UIPrintInteractionController`): stampante o «Salva come PDF»;
-- **file** (HTML, CSV, archivio) e **invio alla CTL**: salvati nella cache e passati
+- **file** (HTML, XLSX, archivio) e **invio alla CTL**: salvati nella cache e passati
   alla condivisione di sistema (plugin `@capacitor/filesystem` e `@capacitor/share`);
 - niente service worker né «Installa app»; «Verifica aggiornamenti» apre le release.
 
@@ -198,7 +196,7 @@ rilascia `26.0` senza altre modifiche funzionali. Lo stesso vale per i rilasci
 successivi (`26.1b1` → `26.1`).
 
 A ogni build aggiornare insieme `APP_VERSION` in `pwa/js/app.js` e `CACHE_NAME`
-in `pwa/service-worker.js`, con il tag git corrispondente (`v26.1b3`, poi `v26.1`).
+in `pwa/service-worker.js`, con il tag git corrispondente (`v26.1b4`, poi `v26.1`).
 
 ## Pubblicazione su GitHub Pages
 

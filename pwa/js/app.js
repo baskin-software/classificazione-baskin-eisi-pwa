@@ -1,4 +1,4 @@
-/* app.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.1b3 - 2026-11-20 09-06-46 */
+/* app.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.1b4 - 2026-11-21 08-28-34 */
 /* =====================================================================
    Classificazione Baskin EISI (PWA) - logica applicativa
    Autore: Daniele Lolli (UncleDan)
@@ -17,7 +17,7 @@
    ===================================================================== */
 'use strict';
 
-const APP_VERSION = '26.1b3';
+const APP_VERSION = '26.1b4';
 /* app nativa Android/iOS (Capacitor): stesso codice della PWA, vedi js/nativo.js */
 const NATIVO = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
 const PIATTAFORMA = NATIVO ? window.Capacitor.getPlatform() : 'web';
@@ -798,7 +798,7 @@ function importaArchivio(file){
 function popolaSuggerimenti(){
   const tutti = archivio().concat(S ? S.giocatori : []).concat(typeof percTutti === 'function' ? percTutti() : []);
   const uniq = k => [...new Set(tutti.map(g => g.dati[k]).filter(Boolean))];
-  $('#dlSezioni').innerHTML = uniq('sezione').map(s => `<option value="${esc(s)}">`).join('');
+  $('#dlSezioni').innerHTML = '';   // la Sezione Territoriale ora è una tendina (elenchi.js)
   const squadre = [...new Set((typeof elencoSquadre === 'function' ? elencoSquadre().map(s => s.nome) : []).concat(uniq('squadra')))];
   $('#dlSquadre').innerHTML = squadre.map(s => `<option value="${esc(s)}">`).join('');
 }
@@ -999,20 +999,29 @@ ${lista.map(x => htmlElemento(x, LOGO_BASKIN, LOGO_EISI)).join('\n')}
 function apriInvioCTL(lista, preselezione){
   if(!lista.length){ toast('Nessuna valutazione confermata da inviare'); return; }
   INV = { lista, sel: new Set(preselezione || lista.map(x => x.item.id)) };
-  const elenco = elencoCTL();
-  /* preselezione: l'ultima usata se è in elenco; se l'elenco ha una sola CTL, quella */
-  let ultima = store.get(KEY_CTL, '');
-  if(!elenco.some(c => c.email === ultima) && elenco.length === 1) ultima = elenco[0].email;
-  const noto = !ultima || elenco.some(c => c.email === ultima);
+  const elenco = elencoCTL(), conEmail = elenco.filter(ctlConEmail), senza = elenco.filter(c => !ctlConEmail(c));
+  /* preselezione, solo tra le CTL che hanno l'e-mail: l'ultima usata; altrimenti
+     quella della Sezione Territoriale delle valutazioni; altrimenti, se è una sola, quella */
+  const usata = store.get(KEY_CTL, '');
+  const sezioni = [...new Set(lista.map(x => x.item.dati.sezione).filter(Boolean))];
+  const perSezione = sezioni.length === 1 ? conEmail.find(c => c.sezione === sezioni[0]) : null;
+  let ultima = conEmail.some(c => c.email === usata) ? usata
+    : perSezione ? perSezione.email
+    : usata ? usata                                    // indirizzo libero usato l'ultima volta
+    : conEmail.length === 1 ? conEmail[0].email : '';
+  const noto = !ultima || conEmail.some(c => c.email === ultima);
   const fileOk = !!(navigator.canShare && window.File && navigator.canShare({ files: [new File(['x'], 'x.html', { type:'text/html' })] }));
   const html = `
     <p><b>Destinatario</b></p>
-    <div class="ctl-list">${elenco.map(c => `
+    <div class="ctl-list">${conEmail.map(c => `
       <label class="chk"><input type="radio" name="ctl" value="${esc(c.email)}" ${c.email === ultima ? 'checked' : ''}/>
         <span><b>${esc(c.nome)}</b><small>${esc(c.email)}</small></span></label>`).join('')}
-      <label class="chk"><input type="radio" name="ctl" value="" ${noto ? '' : 'checked'}/>
+      <label class="chk"><input type="radio" name="ctl" value="__altro" ${noto ? '' : 'checked'}/>
         <span><b>Altro indirizzo</b><input type="email" id="ctlAltro" placeholder="nome@dominio.it" value="${noto ? '' : esc(ultima)}"/></span></label>
     </div>
+    ${senza.length ? `<details class="ctl-senza"><summary class="small">CTL senza e-mail (${senza.length}): non si possono scegliere</summary>
+      <div class="ctl-list">${senza.map(c => `<label class="chk disab"><input type="radio" disabled/><span><b>${esc(c.nome)}</b><small>e-mail non impostata</small></span></label>`).join('')}</div>
+      <p class="small muted">Aggiungi l’e-mail in «Gestisci l’elenco delle CTL», oppure usa «Altro indirizzo».</p></details>` : ''}
     <p class="small"><button class="help-link" type="button" id="btnInvElenco">Gestisci l’elenco delle CTL</button></p>
     ${lista.length > 1 ? `<p><b>Valutazioni da inviare</b></p><div class="ctl-list">${lista.map(x => `
       <label class="chk"><input type="checkbox" data-inv="${x.item.id}" ${INV.sel.has(x.item.id) ? 'checked' : ''}/>
@@ -1031,9 +1040,9 @@ function apriInvioCTL(lista, preselezione){
   body.onchange = e => {
     const c = e.target.closest('[data-inv]');
     if(c){ c.checked ? INV.sel.add(c.dataset.inv) : INV.sel.delete(c.dataset.inv); }
-    if(e.target.id === 'ctlAltro') $('input[name="ctl"][value=""]', body).checked = true;
+    if(e.target.id === 'ctlAltro') $('input[name="ctl"][value="__altro"]', body).checked = true;
   };
-  $('#ctlAltro', body).onfocus = () => { $('input[name="ctl"][value=""]', body).checked = true; };
+  $('#ctlAltro', body).onfocus = () => { $('input[name="ctl"][value="__altro"]', body).checked = true; };
   if($('#btnInvCondividi', body)) $('#btnInvCondividi', body).onclick = () => eseguiInvioCTL(true);
   $('#btnInvMail', body).onclick = () => eseguiInvioCTL(false);
   $('#btnInvElenco', body).onclick = () => { chiudiSheet(); go('elenchi'); };
@@ -1042,7 +1051,7 @@ function apriInvioCTL(lista, preselezione){
 async function eseguiInvioCTL(condividi){
   const body = $('#sheetBody');
   const r = $('input[name="ctl"]:checked', body);
-  const email = (r && r.value) || $('#ctlAltro', body).value.trim();
+  const email = r && r.value !== '__altro' ? r.value : $('#ctlAltro', body).value.trim();
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ toast('Scegli la CTL o scrivi un indirizzo valido'); return; }
   const lista = INV.lista.filter(x => INV.sel.has(x.item.id));
   if(!lista.length){ toast('Seleziona almeno una valutazione'); return; }

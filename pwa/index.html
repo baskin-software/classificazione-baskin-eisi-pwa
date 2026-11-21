@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- index.html by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.1b3 - 2026-11-20 09-06-46 -->
+<!-- index.html by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.1b4 - 2026-11-21 08-28-34 -->
 <html lang="it">
 <head>
   <meta charset="UTF-8" />
@@ -63,7 +63,7 @@
         <span class="tile-ico">&#128214;</span><span class="tile-txt"><b>Testo integrale</b><small>La classificazione dei ruoli nel Baskin</small></span>
       </button>
       <button class="tile" type="button" data-go="elenchi">
-        <span class="tile-ico">&#128101;</span><span class="tile-txt"><b>Squadre e CTL</b><small>Elenchi con colori di maglia e indirizzi, import da CSV</small></span>
+        <span class="tile-ico">&#128101;</span><span class="tile-txt"><b>Squadre, CTL e Sezioni</b><small>Elenchi con colori di maglia, CTL e Sezioni Territoriali, import/export XLSX</small></span>
       </button>
       <button class="tile" type="button" data-go="guida">
         <span class="tile-ico">&#128203;</span><span class="tile-txt"><b>Guida all’uso</b><small>Come compilare griglie e percorsi, stampare e inviare alla CTL</small></span>
@@ -131,7 +131,7 @@
           <select id="p_ruolo"><option value="">—</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select>
         </label>
       </div>
-      <label class="fld"><span>Sezione Territoriale</span><input id="p_sezione" type="text" list="dlSezioni" /></label>
+      <label class="fld"><span>Sezione Territoriale</span><select id="p_sezione_sel"></select><input id="p_sezione" type="text" placeholder="Scrivi la Sezione Territoriale" hidden /></label>
       <p class="small muted"><b class="req">*</b> campi obbligatori</p>
       <p class="small muted only-percorsi">Nei percorsi basta cognome e nome (squadra e n° maglia sono facoltativi); in alternativa servono squadra e n° maglia. Senza numero, sul pulsante del giocatore compaiono le iniziali.</p>
       <p class="err" id="idErr" hidden></p>
@@ -283,32 +283,45 @@
   </section>
 
   <!-- ============ ELENCHI: SQUADRE E CTL ============ -->
-  <section class="screen" id="scr-elenchi" data-title="Squadre e CTL">
+  <section class="screen" id="scr-elenchi" data-title="Squadre, CTL e Sezioni">
     <div class="card">
       <h2 class="el-h">Squadre <small>(<span id="elSquadreN">0</span>)</small></h2>
       <p class="small muted">Nome e due colori di maglia. Con una sola squadra in elenco, il nuovo giocatore la riceve già compilata (modificabile); scegliendo una squadra, nella griglia il colore della maglia si imposta da solo.</p>
       <ul class="el-list" id="elSquadre"></ul>
       <div class="actions">
         <button class="btn btn-pri" type="button" data-el="sq-add">+ Aggiungi squadra</button>
-        <button class="btn" type="button" data-el="sq-imp">&#11014; Importa CSV</button>
-        <button class="btn" type="button" data-el="sq-exp">&#11015; Esporta CSV</button>
+        <button class="btn" type="button" data-el="sq-imp">&#11014; Importa XLSX</button>
+        <button class="btn" type="button" data-el="sq-exp">&#11015; Esporta XLSX</button>
       </div>
-      <p class="small muted">CSV: <code>nome;colore1;colore2</code> — colori come <code>#rrggbb</code> o per nome (rosso, blu, bianco, nero, giallo, verde, azzurro, viola, arancione, grigio, rosa, granata…). Separatore <code>;</code> o <code>,</code>, intestazione facoltativa; le squadre con lo stesso nome vengono aggiornate.
-        <button class="help-link" type="button" data-el="sq-mod-csv">Scarica un modello</button> ·
+      <p class="small muted">XLSX, primo foglio, colonne <code>nome | colore1 | colore2</code> — colori come <code>#rrggbb</code> o per nome (rosso, blu, bianco, nero, giallo, verde, azzurro, viola, arancione, grigio, rosa, granata…). Intestazione facoltativa; le squadre con lo stesso nome vengono aggiornate.
+        <button class="help-link" type="button" data-el="sq-mod-x">Scarica un modello</button> ·
         <button class="help-link" type="button" data-el="sq-svuota">Svuota l’elenco</button></p>
     </div>
     <div class="card">
       <h2 class="el-h">CTL <small>(<span id="elCtlN">0</span>)</small></h2>
-      <p class="small muted">Commissioni Tecniche Locali per «Invia alla CTL». Con una sola CTL in elenco, viene selezionata in automatico (modificabile).</p>
+      <p class="small muted">Commissioni Tecniche Locali per «Invia alla CTL»: una per Sezione Territoriale, con nome libero. L’e-mail è facoltativa, ma si possono scegliere per l’invio solo le CTL che ce l’hanno; se ce n’è una sola, è già selezionata (modificabile).</p>
       <ul class="el-list" id="elCtl"></ul>
       <div class="actions">
         <button class="btn btn-pri" type="button" data-el="ctl-add">+ Aggiungi CTL</button>
-        <button class="btn" type="button" data-el="ctl-imp">&#11014; Importa CSV</button>
-        <button class="btn" type="button" data-el="ctl-exp">&#11015; Esporta CSV</button>
+        <button class="btn" type="button" data-el="ctl-imp">&#11014; Importa XLSX</button>
+        <button class="btn" type="button" data-el="ctl-exp">&#11015; Esporta XLSX</button>
       </div>
-      <p class="small muted">CSV: <code>nome;email</code>, separatore <code>;</code> o <code>,</code>, intestazione facoltativa; le CTL con lo stesso indirizzo vengono aggiornate.
-        <button class="help-link" type="button" data-el="ctl-mod-csv">Scarica un modello</button> ·
+      <p class="small muted">XLSX, primo foglio, colonne <code>nome | email | sezione</code> (e-mail facoltativa). Intestazione facoltativa; le CTL con lo stesso nome vengono aggiornate.
+        <button class="help-link" type="button" data-el="ctl-mod-x">Scarica un modello</button> ·
         <button class="help-link" type="button" data-el="ctl-ripr">Ripristina l’elenco predefinito</button></p>
+    </div>
+    <div class="card">
+      <h2 class="el-h">Sezioni Territoriali <small>(<span id="elStN">0</span>)</small></h2>
+      <p class="small muted">Compaiono nella tendina «Sezione Territoriale» del giocatore (si può sempre scegliere «Altra» e scrivere) e nelle CTL.</p>
+      <ul class="el-list" id="elSt"></ul>
+      <div class="actions">
+        <button class="btn btn-pri" type="button" data-el="st-add">+ Aggiungi Sezione</button>
+        <button class="btn" type="button" data-el="st-imp">&#11014; Importa XLSX</button>
+        <button class="btn" type="button" data-el="st-exp">&#11015; Esporta XLSX</button>
+      </div>
+      <p class="small muted">XLSX, primo foglio, colonna <code>nome</code>. L’import aggiunge le Sezioni nuove.
+        <button class="help-link" type="button" data-el="st-mod-x">Scarica un modello</button> ·
+        <button class="help-link" type="button" data-el="st-ripr">Ripristina l’elenco predefinito</button></p>
     </div>
   </section>
 
@@ -324,13 +337,13 @@
 <li>I dati restano <strong>solo sul dispositivo</strong>, nella memoria del browser.</li>
 </ul>
 <h3>App Android e iOS (in prova)</h3>
-<p>Esiste anche una versione <strong>app</strong> per Android e iOS, con le stesse funzioni. Nell'app la <strong>stampa</strong> apre la stampa del telefono (stampante o <em>Salva come PDF</em>) e i file (HTML, CSV, archivio) e l'invio alla CTL passano dalla <strong>condivisione</strong> del telefono, da cui si salvano o si inviano con l'app di posta. Le versioni di prova sono nella pre-release <em>app-beta</em> del repository.</p>
+<p>Esiste anche una versione <strong>app</strong> per Android e iOS, con le stesse funzioni. Nell'app la <strong>stampa</strong> apre la stampa del telefono (stampante o <em>Salva come PDF</em>) e i file (HTML, XLSX, archivio) e l'invio alla CTL passano dalla <strong>condivisione</strong> del telefono, da cui si salvano o si inviano con l'app di posta. Le versioni di prova sono nella pre-release <em>app-beta</em> del repository.</p>
 <h2>🏠 Schermata iniziale</h2>
 <ul>
 <li><strong>Nuova sessione</strong> (o <strong>Riprendi sessione</strong> se ce n'è una in corso): avvia una sessione di Griglia o di Percorsi.</li>
 <li><strong>Archivio valutazioni</strong>: le griglie e i percorsi confermati.</li>
 <li><strong>Testo integrale</strong>: il testo completo dell'Allegato A, con indice.</li>
-<li><strong>Squadre e CTL</strong>: gli elenchi delle squadre (con i colori di maglia) e delle CTL (con l'e-mail), anche da CSV.</li>
+<li><strong>Squadre, CTL e Sezioni</strong>: gli elenchi delle squadre (con i colori di maglia), delle CTL e delle Sezioni Territoriali, con import/export XLSX.</li>
 <li><strong>Guida all'uso</strong>: questa guida.</li>
 <li><strong>Informazioni</strong>: versione, aggiornamenti, segnalazioni, privacy.</li>
 <li>Se ci sono valutazioni confermate <strong>non ancora stampate</strong>, in alto compare un avviso con <strong>Stampa i rimanenti</strong>.</li>
@@ -344,10 +357,10 @@
 <p>Toccando la riga della sessione in cima al pannello giocatori si inseriscono <strong>data</strong>, <strong>valutatore</strong> e, per la griglia, la <strong>gara osservata</strong>. Nella griglia la <strong>data di osservazione è obbligatoria</strong> (è già compilata con la data del giorno): senza data la conferma finale non si può fare. Gara e valutatore sono facoltativi.</p>
 <h2>👤 Inserimento dei giocatori</h2>
 <ul>
-<li><strong>Squadra</strong>: si scrive o si sceglie dall'elenco (vedi <em>Squadre e CTL</em>). Se l'elenco ha <strong>una sola squadra</strong>, il nuovo giocatore la riceve già compilata; nella griglia, scegliendo una squadra dell'elenco, il <strong>colore della maglia</strong> si imposta da solo e sopra la tavolozza compaiono le due maglie della squadra.</li>
+<li><strong>Squadra</strong>: si scrive o si sceglie dall'elenco (vedi <em>Squadre, CTL e Sezioni</em>). Se l'elenco ha <strong>una sola squadra</strong>, il nuovo giocatore la riceve già compilata; nella griglia, scegliendo una squadra dell'elenco, il <strong>colore della maglia</strong> si imposta da solo e sopra la tavolozza compaiono le due maglie della squadra.</li>
 <li><strong>Griglia</strong>: <strong>squadra</strong> e <strong>n° maglia</strong> obbligatori.</li>
 <li><strong>Percorsi</strong>: basta <strong>cognome e nome</strong>; squadra e n° maglia sono facoltativi. In alternativa al nome servono <strong>squadra e n° maglia</strong>. Senza numero, sul pulsante del giocatore compaiono le <strong>iniziali</strong> di ogni parola, in maiuscolo (es. <em>Rossi Mario</em> → <strong>RM</strong>).</li>
-<li><strong>Data di nascita</strong>, <strong>sesso</strong>, <strong>Sezione Territoriale</strong> (e nella griglia anche <strong>cognome e nome</strong>): facoltativi; il sesso serve per il Percorso B.</li>
+<li><strong>Data di nascita</strong>, <strong>sesso</strong>, <strong>Sezione Territoriale</strong> (e nella griglia anche <strong>cognome e nome</strong>): facoltativi; il sesso serve per il Percorso B. La Sezione si sceglie da una <strong>tendina</strong> (con <strong>Altra</strong> per scriverla); se l'elenco ha una sola Sezione è già impostata.</li>
 <li>Solo nella griglia: <strong>colore della maglia</strong> (8 colori o uno personalizzato) e <strong>ruolo attuale</strong>.</li>
 <li>Dopo ogni inserimento l'app chiede se <strong>aggiungere un altro giocatore</strong>, finché rispondi <em>No</em> o raggiungi il numero consigliato. Oltre quel numero puoi ancora aggiungerne dal pulsante <strong>Aggiungi giocatore</strong>, con una conferma ogni volta.</li>
 </ul>
@@ -387,22 +400,24 @@
 <li>Dopo le tre prove l'<strong>esito</strong> indica il ruolo di partenza o il percorso successivo (es. dal Percorso A al Percorso C). Con <strong>Conferma finale</strong> si attivano stampa, HTML e <strong>Invia alla CTL</strong>; il pulsante del <strong>seguito</strong> avvia il percorso successivo per lo stesso giocatore.</li>
 <li><strong>Riapri percorso</strong> permette di correggere; <strong>Cambia percorso</strong> e <strong>Dati del giocatore</strong> sono sempre disponibili prima della conferma.</li>
 </ol>
-<h2>👥 Squadre e CTL</h2>
-<p>Dalla schermata iniziale, <strong>Squadre e CTL</strong> contiene due elenchi, salvati sul dispositivo:</p>
+<h2>👥 Squadre, CTL e Sezioni</h2>
+<p>Dalla schermata iniziale, <strong>Squadre, CTL e Sezioni</strong> contiene tre elenchi, salvati sul dispositivo:</p>
 <ul>
 <li><strong>Squadre</strong>: nome e <strong>due colori di maglia</strong> (facoltativi), scelti dalla tavolozza o personalizzati.</li>
-<li><strong>CTL</strong>: nome e <strong>indirizzo e-mail</strong> delle Commissioni Tecniche Locali. L'app parte con un elenco predefinito, che si può modificare o <strong>ripristinare</strong>.</li>
+<li><strong>CTL</strong>: una per <strong>Sezione Territoriale</strong>, con nome libero ed <strong>e-mail facoltativa</strong>. Per l'invio si possono scegliere solo le CTL che hanno l'e-mail: l'app parte con l'e-mail della sola CTL Emilia-Romagna, le altre si aggiungono quando ci sono.</li>
+<li><strong>Sezioni Territoriali</strong>: l'elenco della tendina «Sezione Territoriale» del giocatore (Campania, Emilia-Romagna, Friuli-Venezia Giulia, Lazio, Lombardia Nord, Sud ed Est, Marche, Piemonte e Valle d'Aosta, Puglia, Sicilia, Toscana, Umbria, Veneto). Nella tendina si può sempre scegliere <strong>Altra</strong> e scriverla.</li>
 </ul>
-<p>Per ogni elenco: <strong>Aggiungi</strong>, <strong>Modifica</strong>, elimina (✕), <strong>Importa CSV</strong>, <strong>Esporta CSV</strong> e <strong>Scarica un modello</strong>. Nel CSV:</p>
+<p>Per ogni elenco: <strong>Aggiungi</strong>, <strong>Modifica</strong>, elimina (✕), <strong>Importa XLSX</strong>, <strong>Esporta XLSX</strong> e <strong>Scarica un modello</strong>; CTL e Sezioni si possono anche <strong>ripristinare</strong> all'elenco predefinito. Nel file XLSX (primo foglio, intestazione facoltativa):</p>
 <ul>
-<li>squadre: <code>nome;colore1;colore2</code>, con i colori come <code>#rrggbb</code> o per nome (rosso, blu, bianco, nero, giallo, verde, azzurro, viola, arancione, grigio, rosa, granata…);</li>
-<li>CTL: <code>nome;email</code>.</li>
+<li>squadre: colonne <code>nome | colore1 | colore2</code>, con i colori come <code>#rrggbb</code> o per nome (rosso, blu, bianco, nero, giallo, verde, azzurro, viola, arancione, grigio, rosa, granata…);</li>
+<li>CTL: colonne <code>nome | email | sezione</code> (e-mail facoltativa);</li>
+<li>Sezioni: colonna <code>nome</code>.</li>
 </ul>
-<p>Il separatore può essere <code>;</code> o <code>,</code> e la riga d'intestazione è facoltativa. L'import <strong>aggiunge</strong> le voci nuove e <strong>aggiorna</strong> quelle già presenti (stesso nome di squadra, stesso indirizzo di CTL).</p>
+<p>L'import <strong>aggiunge</strong> le voci nuove e <strong>aggiorna</strong> quelle già presenti (stesso nome). In import si accettano anche i file CSV.</p>
 <h2>✉️ Invio alla CTL</h2>
 <p>Il pulsante <strong>Invia alla CTL</strong> si trova nel pannello giocatori (tutte le valutazioni confermate della sessione), nel menu di ogni giocatore confermato e in ogni voce dell'<strong>Archivio</strong>.</p>
 <ol>
-<li>Scegli la <strong>CTL destinataria</strong> dall'elenco oppure <strong>Altro indirizzo</strong>. L'ultima scelta viene ricordata; se l'elenco ha <strong>una sola CTL</strong> è già selezionata. Il collegamento <strong>Gestisci l'elenco delle CTL</strong> porta a <em>Squadre e CTL</em>.</li>
+<li>Scegli la <strong>CTL destinataria</strong> tra quelle che hanno l'e-mail, oppure <strong>Altro indirizzo</strong>. Le CTL senza e-mail sono raccolte a parte e non si possono scegliere. Viene proposta l'ultima CTL usata; altrimenti quella della <strong>Sezione Territoriale</strong> delle valutazioni; altrimenti, se una sola CTL ha l'e-mail, quella. Il collegamento <strong>Gestisci l'elenco delle CTL</strong> porta a <em>Squadre, CTL e Sezioni</em>.</li>
 <li>Se le valutazioni sono più di una, spunta quelle da inviare: vengono riunite in <strong>un solo file HTML</strong>, una scheda per pagina.</li>
 <li>Scegli come inviare:<ul>
 <li><strong>Invia con allegato</strong> (telefono): si apre la condivisione, scegli l'app di posta. Il file è già allegato e il testo è già scritto; l'indirizzo della CTL è copiato negli appunti e scritto in cima al messaggio: incollalo come destinatario se l'app non lo inserisce.</li>
@@ -905,6 +920,7 @@
 <script src="js/logos.js"></script>
 <script src="js/seg.js"></script>
 <script src="js/percorsi-data.js"></script>
+<script src="js/xlsx.js"></script>
 <script src="js/ctl.js"></script>
 <script src="js/app.js"></script>
 <script src="js/elenchi.js"></script>

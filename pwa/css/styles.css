@@ -1,4 +1,4 @@
-/* styles.css by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.1b3 - 2026-11-20 09-06-46 */
+/* styles.css by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.1b4 - 2026-11-21 08-28-34 */
 /* =====================================================================
    Classificazione Baskin EISI (PWA) - stili
    Font: Arial; Arial Narrow per le intestazioni.
@@ -544,3 +544,7 @@ body:not([data-tipo="percorsi"]) .only-percorsi{ display: none !important; }
 .el-dot.vuoto{ background: repeating-linear-gradient(45deg,#fff,#fff 3px,#ddd 3px,#ddd 6px); }
 .swatch.none{ background: #fff; color: #999; font-size: 18px; line-height: 1; }
 .team-colors{ display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+
+.ctl-senza{ margin: 6px 0 10px; }
+.ctl-senza summary{ cursor: pointer; color: var(--muted, #666); }
+.chk.disab{ opacity: .5; }
