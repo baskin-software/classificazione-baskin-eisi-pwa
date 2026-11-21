@@ -1,4 +1,4 @@
-// StampaPlugin.swift by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.1b5 - 2026-11-21 08-42-58
+// StampaPlugin.swift by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.1b6 - 2026-11-21 10-09-33
 import Capacitor
 import UIKit
 

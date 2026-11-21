@@ -1,4 +1,4 @@
-/* data.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.1b5 - 2026-11-21 08-42-58 */
+/* data.js by Daniele Lolli (UncleDan) feat. Claude AI - Release 26.1b6 - 2026-11-21 10-09-33 */
 /* =====================================================================
    Classificazione Baskin EISI (PWA) - dati della griglia
    Testi tratti integralmente da: Allegato A al regolamento di gioco -
